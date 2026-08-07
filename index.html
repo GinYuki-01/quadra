@@ -595,9 +595,7 @@ function drawTasks(){
     h += `<div class="par" data-pid="${p.id}" style="border-left-color:${p.color}">
       <div class="par-h${p.done ? ' pdone' : ''}" draggable="true" data-dragp="${p.id}">
         <span class="grip" title="ドラッグで並べ替え">⠿</span>
-        <span class="box${p.done?' on':''}" data-ptog="${p.id}" title="親タスクを完了"></span>
         <span class="par-t" data-ep="${p.id}" title="クリックで編集">${p.title}</span>
-        ${p.done ? '<span class="rep">明朝9時に片付く</span>' : ''}
         <span class="add" data-p="${p.id}">${openAdd === p.id ? '閉じる' : '＋ 子タスク'}</span>
         <button class="tr" data-del="${p.id}" title="親タスクごと削除">${TRASH}</button>
       </div>`;
@@ -679,18 +677,6 @@ function drawTasks(){
     const id = n.dataset.ek;
     editK = editK === id ? null : id; editP = null; drawTasks();
     const i = document.getElementById('ek'); if (i){ i.focus(); i.select(); }
-  }));
-  el.querySelectorAll('[data-ptog]').forEach(b => b.addEventListener('click', e => {
-    e.stopPropagation();
-    const p = parents.find(x => x.id === b.dataset.ptog);
-    p.done = !p.done;
-    p.doneAt = p.done ? today() : null;
-    if (p.done){
-      kidsOf(p.id).forEach(k => { if (!k.done){ k.done = true; k.doneAt = today(); k.now = false; } });
-      if (openAdd === p.id) openAdd = null;
-      if (editP === p.id) editP = null;
-    }
-    render();
   }));
   el.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', e => {
     e.stopPropagation();
@@ -834,45 +820,54 @@ function bindDrag(el){
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', n.dataset.dragp);
     });
-    n.addEventListener('dragend', () => { drag = null; clearDropMark(el); });
-    n.addEventListener('dragover', e => {
-      if (!drag) return;
-      e.preventDefault();
-      clearDropMark(el);
-      n.classList.add('drop');
-    });
-    n.addEventListener('drop', e => {
-      e.preventDefault(); e.stopPropagation();
-      const tid = n.dataset.dragp;
-      if (!drag) return;
-      if (drag.type === 'p') movePar(drag.id, tid);
-      else moveKid(drag.id, tid, null);
-      drag = null; reindex(); render();
-    });
   });
-  el.querySelectorAll('[data-kid]').forEach(n => {
+  el.querySelectorAll('.ch[draggable]').forEach(n => {
     n.addEventListener('dragstart', e => {
       drag = {type:'k', id:n.dataset.kid};
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', n.dataset.kid);
       e.stopPropagation();
     });
-    n.addEventListener('dragend', () => { drag = null; clearDropMark(el); });
-    n.addEventListener('dragover', e => {
-      if (!drag || drag.type !== 'k') return;
-      e.preventDefault(); e.stopPropagation();
-      clearDropMark(el);
-      n.classList.add('drop');
-    });
-    n.addEventListener('drop', e => {
-      if (!drag || drag.type !== 'k') return;
-      e.preventDefault(); e.stopPropagation();
-      const t = kids.find(x => x.id === n.dataset.kid);
-      moveKid(drag.id, t.parent, t.id);
-      drag = null; reindex(); render();
-    });
   });
+
+  el.addEventListener('dragover', e => {
+    if (!drag) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    clearDropMark(el);
+    const t = dropTarget(e);
+    if (t) t.el.classList.add('drop');
+  });
+  el.addEventListener('drop', e => {
+    if (!drag) return;
+    e.preventDefault();
+    const t = dropTarget(e);
+    if (t){
+      if (drag.type === 'p' && t.pid) movePar(drag.id, t.pid);
+      if (drag.type === 'k'){
+        if (t.kid){
+          const target = kids.find(x => x.id === t.kid);
+          if (target && target.id !== drag.id) moveKid(drag.id, target.parent, target.id);
+        } else if (t.pid){
+          moveKid(drag.id, t.pid, null);
+        }
+      }
+    }
+    drag = null; clearDropMark(el); reindex(); render();
+  });
+  el.addEventListener('dragend', () => { drag = null; clearDropMark(el); });
 }
+
+function dropTarget(e){
+  const path = e.composedPath ? e.composedPath() : [];
+  for (const n of path){
+    if (!n.dataset) continue;
+    if (drag.type === 'k' && n.dataset.kid) return {el:n, kid:n.dataset.kid};
+    if (n.dataset.pid) return {el:n, pid:n.dataset.pid};
+  }
+  return null;
+}
+
 function clearDropMark(el){ el.querySelectorAll('.drop').forEach(x => x.classList.remove('drop')); }
 
 function movePar(from, to){
