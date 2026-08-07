@@ -208,7 +208,8 @@ svg.mx{display:block;width:100%;height:100%}
 .lg-btn:hover{background:var(--ink);color:#fff}
 .lg-btn:disabled{opacity:.45;pointer-events:none}
 .lg-load{display:flex;align-items:center;gap:9px;margin-top:18px;font-size:11.5px;
-  color:var(--ink-3);letter-spacing:.08em;opacity:0;transition:opacity .25s}
+  color:var(--ink-3);letter-spacing:.04em;opacity:0;transition:opacity .25s}
+#lmsg{white-space:nowrap;transition:opacity .18s}
 .lg-load.on{opacity:1}
 .lg-bar{flex:1;height:1px;background:var(--line-2);position:relative;overflow:hidden}
 .lg-bar i{position:absolute;inset:0;background:var(--ink);transform:scaleX(0);transform-origin:left;
@@ -238,7 +239,7 @@ svg.mx{display:block;width:100%;height:100%}
     <div class="lg-brand"><b>Quadra</b></div>
     <div class="lg-sum" id="lsum"></div>
     <button class="lg-btn" id="lbtn">はじめる</button>
-    <div class="lg-load" id="lload"><span>読み込み中</span><span class="lg-bar" id="lbar"><i></i></span></div>
+    <div class="lg-load" id="lload"><span id="lmsg">読み込み中</span><span class="lg-bar" id="lbar"><i></i></span></div>
   </div>
 </div>
 
@@ -1116,7 +1117,7 @@ window.addEventListener('resize', fitHeights);
 
 /* ---------- 永続化：File System Access + localStorage ---------- */
 const LS_KEY = 'quadra.v1';
-let fileHandle = null, lastWrite = 0, saveTimer = null, loading = true, lastSavedAt = 0;
+let fileHandle = null, pendingHandle = null, lastWrite = 0, saveTimer = null, loading = true, lastSavedAt = 0;
 
 function idb(){
   return new Promise((res, rej) => {
@@ -1175,7 +1176,27 @@ async function saveNow(){
   }
 }
 
+async function resumeFile(){
+  if (!pendingHandle) return false;
+  try{
+    const perm = await pendingHandle.requestPermission({mode:'readwrite'});
+    if (perm !== 'granted'){ setStatus('local', pendingHandle.name + ' · 許可待ち'); return false; }
+    fileHandle = pendingHandle; pendingHandle = null;
+    const d = await readFile(fileHandle);
+    if (d && d.savedAt >= lastSavedAt){
+      restore(d);
+      loading = true; render(); drawDirs(); loading = false;
+    }
+    setStatus('ok', fileHandle.name);
+    return true;
+  }catch(e){
+    setStatus('local','ファイル書込不可');
+    return false;
+  }
+}
+
 async function linkFile(){
+  if (pendingHandle && await resumeFile()) return;
   if (!window.showSaveFilePicker){
     alert('このブラウザはファイル保存に対応していない。ChromeかEdgeで開く。');
     return;
@@ -1215,7 +1236,8 @@ async function initStore(){
         if (d) restore(d);
         setStatus('ok', h.name);
       } else {
-        setStatus('local','ファイル再接続が必要');
+        pendingHandle = h;
+        setStatus('local', h.name + ' · 許可待ち');
         const ls = localStorage.getItem(LS_KEY);
         if (ls) restore(JSON.parse(ls));
       }
@@ -1267,6 +1289,8 @@ function importData(file){
   r.readAsText(file);
 }
 
+window.resumeFile = resumeFile;
+window.storeState = () => ({pending: !!pendingHandle, linked: !!fileHandle});
 document.getElementById('linkBtn').addEventListener('click', linkFile);
 document.getElementById('expBtn').addEventListener('click', exportData);
 document.getElementById('impBtn').addEventListener('click', () => document.getElementById('impFile').click());
@@ -1300,21 +1324,46 @@ window.addEventListener('beforeunload', () => { if (saveTimer){ clearTimeout(sav
       <div class="r"><span>相手待ち</span><b>${wait}</b></div>`;
   }
 
-  function enter(){
+  const say = t => {
+    const m = document.getElementById('lmsg');
+    m.style.opacity = 0;
+    setTimeout(() => { m.textContent = t; m.style.opacity = 1; }, 140);
+  };
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+
+  async function enter(){
     if (!locked) return;
     btn.disabled = true;
     load.classList.add('on');
+
+    if (window.storeState && window.storeState().pending){
+      say('保存ファイルへの接続を確認中');
+      await wait(320);
+      const ok = window.resumeFile ? await window.resumeFile() : false;
+      say(ok ? '保存ファイルを読み込みました' : 'ブラウザ内の記録で起動します');
+      await wait(520);
+    } else if (window.storeState && window.storeState().linked){
+      say('保存ファイルを読み込み中');
+      await wait(380);
+    } else {
+      say('ブラウザ内の記録を確認中');
+      await wait(320);
+    }
+
+    say('画面を組み立て中');
     requestAnimationFrame(() => bar.classList.add('run'));
-    setTimeout(() => {
-      document.getElementById('app').classList.add('in');
-      box.classList.add('gone');
-      locked = false;
-      btn.disabled = false;
-      load.classList.remove('on');
-      bar.classList.remove('run');
-      fitHeights();
-      resetIdle();
-    }, 950);
+    await wait(700);
+
+    document.getElementById('app').classList.add('in');
+    box.classList.add('gone');
+    locked = false;
+    btn.disabled = false;
+    load.classList.remove('on');
+    bar.classList.remove('run');
+    document.getElementById('lmsg').textContent = '読み込み中';
+    fitHeights();
+    summary();
+    resetIdle();
   }
 
   function lock(){
