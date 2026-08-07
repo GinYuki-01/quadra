@@ -177,6 +177,21 @@ svg.mx{display:block;width:100%;height:100%}
 .par-h:hover .grip,.ch:hover .grip{opacity:1}
 .par-h[draggable],.ch[draggable]{cursor:default}
 .drop{box-shadow:inset 0 2px 0 -1px var(--ink)}
+.st{display:flex;align-items:center;gap:7px;padding:1.5px 0 1.5px 34px}
+.st .stt{font-size:12px;color:var(--ink-2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st.done .stt{text-decoration:line-through;color:var(--ink-3);font-size:10.5px}
+.stbox{width:10px;height:10px;border:1px solid var(--line-2);border-radius:2px;flex:none;cursor:pointer;
+  display:grid;place-items:center}
+.stbox.on{background:var(--ink-3);border-color:var(--ink-3)}
+.st.done .stbox{opacity:.4}
+.st .tr{width:16px;height:16px}
+.stadd{padding-left:34px}
+.stadd input{flex:1;min-width:120px}
+.stepn{font-size:10px;color:var(--ink-3);border:1px solid var(--line-2);border-radius:99px;
+  padding:0 5px;flex:none;font-variant-numeric:tabular-nums}
+.editbtn{font-size:10.5px;color:var(--ink-3);flex:none;opacity:0}
+.ch:hover .editbtn{opacity:1}
+.editbtn:hover{color:var(--ink)}
 .editbar{background:#fafaf8;border-radius:var(--r);margin:2px 0 4px}
 .par-t,.ch-t{cursor:pointer}
 .par-t:hover{text-decoration:underline;text-decoration-color:var(--line-2);text-underline-offset:3px}
@@ -415,6 +430,7 @@ let dirs = [];
 let view = 'open', hidden = new Set(), sel = null, selDir = null;
 let openAdd = null, addingParent = false, editK = null, editP = null;
 let sortMode = 'urgency';
+let openStep = null;
 let expanded = new Set(), adding = null;
 
 const kidsOf = pid => kids.filter(k => k.parent === pid && !k.arch);
@@ -641,11 +657,25 @@ function drawTasks(){
         ${man ? '<span class="grip sm" title="ドラッグで並べ替え">⠿</span>' : ''}
         <span class="box${k.done?' on':''}" data-tog="${k.id}"></span>
         ${k.waiting && !k.done ? `<span class="wm" style="border-color:${p.color}"></span>` : ''}
-        <span class="ch-t" data-ek="${k.id}" title="クリックで編集">${k.title}</span>
+        <span class="ch-t" data-step="${k.id}" title="クリックで経過を追記">${k.title}</span>
+        ${(k.steps||[]).filter(x=>!x.done).length ? `<span class="stepn">${(k.steps||[]).filter(x=>!x.done).length}</span>` : ''}
+        <button class="editbtn" data-ek="${k.id}">編集</button>
         ${k.rep ? `<span class="rep">${repLabel(k.rep)}${k.done && k.nextAt ? ' · ' + k.nextAt.slice(5).replace('-','/') + ' 前に復活' : ''}</span>` : ''}
         ${k.done ? '' : `<button class="nowbtn${k.now?' on':''}" data-now="${k.id}">now</button>`}
         <button class="tr" data-delk="${k.id}" title="削除">${TRASH}</button>
         <span class="u">${k.done ? '' : label(k)}</span></div>`;
+      if (!k.done && (k.steps||[]).length){
+        h += (k.steps||[]).map(st => `<div class="st${st.done?' done':''}" data-stid="${st.id}">
+          <span class="stbox${st.done?' on':''}" data-sttog="${st.id}"></span>
+          <span class="stt">${st.text}</span>
+          <button class="tr" data-stdel="${st.id}">${TRASH}</button></div>`).join('');
+      }
+      if (openStep === k.id){
+        h += `<div class="inline stadd">
+          <input type="text" id="si" placeholder="経過を追記" autocomplete="off">
+          <button class="btn sm pri" id="sadd">追記</button>
+        </div>`;
+      }
       if (editK === k.id){
         h += `<div class="inline editbar">
           <input type="text" id="ek" value="${k.title.replace(/"/g,'&quot;')}" autocomplete="off">
@@ -712,10 +742,29 @@ function drawTasks(){
     editP = editP === id ? null : id; editK = null; drawTasks();
     const i = document.getElementById('ep'); if (i){ i.focus(); i.select(); }
   }));
-  el.querySelectorAll('[data-ek]').forEach(n => n.addEventListener('click', () => {
+  el.querySelectorAll('[data-ek]').forEach(n => n.addEventListener('click', e => {
+    e.stopPropagation();
     const id = n.dataset.ek;
-    editK = editK === id ? null : id; editP = null; drawTasks();
+    editK = editK === id ? null : id; editP = null; openStep = null; drawTasks();
     const i = document.getElementById('ek'); if (i){ i.focus(); i.select(); }
+  }));
+  el.querySelectorAll('[data-step]').forEach(n => n.addEventListener('click', e => {
+    e.stopPropagation();
+    const id = n.dataset.step;
+    openStep = openStep === id ? null : id; editK = null; editP = null; drawTasks();
+    const i = document.getElementById('si'); if (i) i.focus();
+  }));
+  el.querySelectorAll('[data-sttog]').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    const id = b.dataset.sttog;
+    kids.forEach(k => (k.steps||[]).forEach(st => { if (st.id === id) st.done = !st.done; }));
+    render();
+  }));
+  el.querySelectorAll('[data-stdel]').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    const id = b.dataset.stdel;
+    kids.forEach(k => { if (k.steps) k.steps = k.steps.filter(st => st.id !== id); });
+    render();
   }));
   el.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', e => {
     e.stopPropagation();
@@ -749,6 +798,22 @@ function drawTasks(){
   }));
 
   bindDrag(el);
+
+  const sadd = document.getElementById('sadd');
+  if (sadd){
+    const go = () => {
+      const inp = document.getElementById('si');
+      const t = inp.value.trim();
+      if (!t) return inp.focus();
+      const k = kids.find(x => x.id === openStep);
+      k.steps = k.steps || [];
+      k.steps.push({id:'s'+(uid++), text:t, done:false});
+      render();
+      const i = document.getElementById('si'); if (i) i.focus();
+    };
+    sadd.addEventListener('click', go);
+    document.getElementById('si').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+  }
 
   const ekm = document.getElementById('ekm');
   if (ekm) ekm.addEventListener('input', e => document.getElementById('ekmv').textContent = e.target.value);
