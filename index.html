@@ -181,6 +181,8 @@ svg.mx{display:block;width:100%;height:100%}
 .dn:hover .x{opacity:1}
 .dn .x:hover{color:var(--ink);background:#eceae6}
 .dn .x[data-af]{margin-left:auto}
+.dn.folder .cnum{margin-right:2px}
+.dn .x{flex:none}
 .dn.entry .tr{margin-left:auto}
 .rep{font-size:10px;color:var(--ink-2);border:1px solid var(--line-2);border-radius:99px;padding:0 7px;white-space:nowrap}
 .sortsel{border:1px solid var(--line-2);border-radius:var(--r);padding:2px 6px;
@@ -1356,6 +1358,8 @@ function dirRow(d){
     <span class="${isF ? 'fn' : 'en'}">${d.name}</span>
     ${isF ? `<span class="cnum">${n || ''}</span>` : ''}
     ${!isF && d.path ? `<span class="ppeek">${d.path}</span>` : ''}
+    ${isF ? `<button class="x" data-af="${d.id}">＋フォルダ</button>
+    <button class="x" data-ae="${d.id}">＋パス</button>` : ''}
     <button class="tr" data-del="${d.id}" title="ゴミ箱へ">${TRASH}</button>
     ${isF ? '<span class="cv">›</span>' : ''}
   </div>`;
@@ -1395,6 +1399,8 @@ function treeRow(d, pre, last){
     <span class="ficon"></span>
     <span class="fn">${d.name}</span>
     <span class="cnum">${list.length || ''}</span>
+    <button class="x" data-af="${d.id}">＋フォルダ</button>
+    <button class="x" data-ae="${d.id}">＋パス</button>
     <button class="tr" data-del="${d.id}" title="ゴミ箱へ">${TRASH}</button></div>`;
   if (open){
     const sub = pre.concat([!last]);
@@ -1553,6 +1559,14 @@ function bindDirs(tree){
     dirSort = e.target.value; drawDirs();
   });
 
+  tree.querySelectorAll('[data-af],[data-ae]').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    const id = b.dataset.af || b.dataset.ae;
+    if (dirView === 'tree') expanded.add(id); else cwd = id;
+    adding = {parent:id, type: b.dataset.af ? 'folder' : 'entry'};
+    drawDirs();
+    const i = document.getElementById('dnm'); if (i) i.focus();
+  }));
   tree.querySelectorAll('[data-new]').forEach(b => b.addEventListener('click', () => {
     adding = {parent: dirView === 'tree' ? null : cwd, type:b.dataset.new};
     drawDirs(); const i = document.getElementById('dnm'); if (i) i.focus();
