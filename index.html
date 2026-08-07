@@ -168,7 +168,9 @@ svg.mx{display:block;width:100%;height:100%}
 .dn .x[data-af]{margin-left:auto}
 .rep{font-size:10px;color:var(--ink-2);border:1px solid var(--line-2);border-radius:99px;padding:0 7px;white-space:nowrap}
 .sortsel{border:1px solid var(--line-2);border-radius:var(--r);padding:2px 6px;
-  font-size:11px;color:var(--ink-2);background:#fff;margin-right:6px}
+  font-size:11px;color:var(--ink-2);background:#fff}
+.phx{gap:8px}
+.phx .tabs{margin-left:auto}
 .grip{color:var(--ink-3);font-size:12px;cursor:grab;letter-spacing:-1px;flex:none;opacity:.45}
 .grip:active{cursor:grabbing}
 .grip.sm{font-size:10px}
@@ -282,18 +284,18 @@ svg.mx{display:block;width:100%;height:100%}
       </div>
 
       <div class="panel" id="taskP">
-        <div class="ph">
+        <div class="ph phx">
           <span class="pt">tasks</span>
+          <div class="tabs">
+            <button class="tab on" data-v="open">進行中</button>
+            <button class="tab" data-v="archive">アーカイブ</button>
+          </div>
           <select id="sortSel" class="sortsel">
             <option value="urgency">緊急度順</option>
             <option value="due">締切順</option>
             <option value="imp">重要度順</option>
             <option value="manual">手動</option>
           </select>
-          <div class="tabs">
-            <button class="tab on" data-v="open">進行中</button>
-            <button class="tab" data-v="archive">アーカイブ</button>
-          </div>
         </div>
         <div class="pb" id="taskList"></div>
       </div>
@@ -574,7 +576,22 @@ function reindex(){
   parents.forEach((p,i) => p.order = i);
   parents.forEach(p => kidsOf(p.id).sort((a,b)=>(a.order||0)-(b.order||0)).forEach((k,i) => k.order = i));
 }
-function sortedParents(){ return parents.slice().sort((a,b)=>(a.order||0)-(b.order||0)); }
+function parKey(p, fn, init, better){
+  let v = init;
+  kidsOf(p.id).filter(k => !k.done).forEach(k => { const x = fn(k); if (better(x, v)) v = x; });
+  return v;
+}
+function sortedParents(){
+  const arr = parents.slice();
+  if (sortMode === 'urgency')
+    return arr.sort((a,b) => parKey(b, urgency, -1, (x,v)=>x>v) - parKey(a, urgency, -1, (x,v)=>x>v));
+  if (sortMode === 'due')
+    return arr.sort((a,b) => parKey(a, k=>k.due?+atDayStart(k.due):Infinity, Infinity, (x,v)=>x<v)
+                           - parKey(b, k=>k.due?+atDayStart(k.due):Infinity, Infinity, (x,v)=>x<v));
+  if (sortMode === 'imp')
+    return arr.sort((a,b) => parKey(b, k=>k.imp, -1, (x,v)=>x>v) - parKey(a, k=>k.imp, -1, (x,v)=>x>v));
+  return arr.sort((a,b)=>(a.order||0)-(b.order||0));
+}
 
 function drawTasks(){
   const el = document.getElementById('taskList');
@@ -648,6 +665,15 @@ function drawTasks(){
         <input type="date" id="nd">
         <span class="sl"><span class="lab">重要</span><input type="range" id="nm" min="1" max="10" value="5"><b id="nmv">5</b></span>
         <label class="cb"><input type="checkbox" id="nw"> 相手待ち</label>
+        <span class="lab">ルーチン</span>
+        <select id="nrf">
+          <option value="">なし</option>
+          <option value="daily">毎日</option>
+          <option value="weekly">毎週</option>
+          <option value="monthly">毎月</option>
+          <option value="yearly">毎年</option>
+        </select>
+        <span id="nropt"></span>
         <button class="btn sm pri" id="nadd">追加</button>
       </div>`;
     }
@@ -775,6 +801,20 @@ function drawTasks(){
   const nm = document.getElementById('nm');
   if (nm) nm.addEventListener('input', e => document.getElementById('nmv').textContent = e.target.value);
 
+  const nrf = document.getElementById('nrf');
+  if (nrf){
+    const opt = document.getElementById('nropt');
+    const drawOpt = f => {
+      if (f === 'weekly') opt.innerHTML = `<select id="nrv">${WD.map((w,i) =>
+        `<option value="${i}"${now().getDay()===i?' selected':''}>${w}曜</option>`).join('')}</select>`;
+      else if (f === 'monthly') opt.innerHTML = `<select id="nrv">${Array.from({length:31},(_,i)=>i+1).map(d =>
+        `<option value="${d}"${now().getDate()===d?' selected':''}>${d}日</option>`).join('')}</select>`;
+      else if (f === 'yearly') opt.innerHTML = `<input type="date" id="nrv" value="${today()}">`;
+      else opt.innerHTML = '';
+    };
+    nrf.addEventListener('change', () => drawOpt(nrf.value));
+  }
+
   const nadd = document.getElementById('nadd');
   if (nadd){
     const go = () => {
@@ -782,9 +822,20 @@ function drawTasks(){
       if (!t) return document.getElementById('ni').focus();
       const w = document.getElementById('nw').checked;
       const dEl = document.getElementById('nd');
+      let rep = null, nextAt = null, due = dEl.value || null;
+      const f = document.getElementById('nrf').value;
+      if (f){
+        const v = document.getElementById('nrv');
+        rep = {freq:f};
+        if (f === 'weekly')  rep.wd = +v.value;
+        if (f === 'monthly') rep.dm = +v.value;
+        if (f === 'yearly'){ const dt = atDayStart(v.value); rep.mo = dt.getMonth()+1; rep.dm = dt.getDate(); }
+        nextAt = firstOccurrence(rep);
+        if (!due) due = nextAt;
+      }
       kids.push({id:'k'+(uid++), parent:openAdd, title:t, imp:+document.getElementById('nm').value,
-        due: dEl.value || null, waiting:w, since:w ? today() : null,
-        done:false, doneAt:null, now:false, arch:false, rep:null, nextAt:null,
+        due, waiting:w, since:w ? today() : null,
+        done:false, doneAt:null, now:false, arch:false, rep, nextAt,
         order: kidsOf(openAdd).length});
       render();
       const i = document.getElementById('ni'); if (i) i.focus();
