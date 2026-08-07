@@ -167,6 +167,14 @@ svg.mx{display:block;width:100%;height:100%}
 .dn .x:hover{color:var(--ink)}
 .dn .x[data-af]{margin-left:auto}
 .rep{font-size:10px;color:var(--ink-2);border:1px solid var(--line-2);border-radius:99px;padding:0 7px;white-space:nowrap}
+.sortsel{border:1px solid var(--line-2);border-radius:var(--r);padding:2px 6px;
+  font-size:11px;color:var(--ink-2);background:#fff;margin-right:6px}
+.grip{color:var(--ink-3);font-size:12px;cursor:grab;letter-spacing:-1px;flex:none;opacity:.45}
+.grip:active{cursor:grabbing}
+.grip.sm{font-size:10px}
+.par-h:hover .grip,.ch:hover .grip{opacity:1}
+.par-h[draggable],.ch[draggable]{cursor:default}
+.drop{box-shadow:inset 0 2px 0 -1px var(--ink)}
 .editbar{background:#fafaf8;border-radius:var(--r);margin:2px 0 4px}
 .par-t,.ch-t{cursor:pointer}
 .par-t:hover{text-decoration:underline;text-decoration-color:var(--line-2);text-underline-offset:3px}
@@ -276,6 +284,12 @@ svg.mx{display:block;width:100%;height:100%}
       <div class="panel" id="taskP">
         <div class="ph">
           <span class="pt">tasks</span>
+          <select id="sortSel" class="sortsel">
+            <option value="urgency">緊急度順</option>
+            <option value="due">締切順</option>
+            <option value="imp">重要度順</option>
+            <option value="manual">手動</option>
+          </select>
           <div class="tabs">
             <button class="tab on" data-v="open">進行中</button>
             <button class="tab" data-v="archive">アーカイブ</button>
@@ -376,16 +390,16 @@ function sweep(){
 function cycleCheck(){
   sweep();
   const t0 = today();
-  parents.forEach(p => {
-    if (!p.rep || !p.nextAt) return;
-    let guard = 0;
-    while (p.nextAt < t0 && guard++ < 400){
-      p.nextAt = nextOccurrence(p.nextAt, p.rep);
-      kidsOf(p.id).forEach(k => { if (k.done) k.arch = true; });
-      (p.tpl || []).forEach(t => kids.push({
-        id:'k'+(uid++), parent:p.id, title:t.title, imp:t.imp, due:p.nextAt,
-        waiting:false, since:null, done:false, doneAt:null, now:false, arch:false
-      }));
+  kids.filter(k => k.rep && k.nextAt && !k.arch).forEach(src => {
+    let k = src, guard = 0;
+    while (k.nextAt < t0 && guard++ < 400){
+      const nx = nextOccurrence(k.nextAt, k.rep);
+      const copy = Object.assign({}, k, {id:'k'+(uid++), due:nx, nextAt:nx,
+        done:false, doneAt:null, now:false, arch:false});
+      if (k.done) k.arch = true;
+      k.rep = null; k.nextAt = null;
+      kids.push(copy);
+      k = copy;
     }
   });
 }
@@ -398,6 +412,7 @@ let kids = [];
 let dirs = [];
 let view = 'open', hidden = new Set(), sel = null, selDir = null;
 let openAdd = null, addingParent = false, editK = null, editP = null;
+let sortMode = 'urgency';
 let expanded = new Set(), adding = null;
 
 const kidsOf = pid => kids.filter(k => k.parent === pid && !k.arch);
@@ -545,6 +560,22 @@ function drawNow(){
   }).join('') : '<div class="empty">子タスクの「now」を押すとここに並ぶ</div>';
 }
 
+function sortKids(list){
+  const arr = list.slice();
+  const by = {
+    urgency:(a,b)=>urgency(b)-urgency(a),
+    due:(a,b)=>(a.due?atDayStart(a.due):Infinity)-(b.due?atDayStart(b.due):Infinity),
+    imp:(a,b)=>b.imp-a.imp,
+    manual:(a,b)=>(a.order||0)-(b.order||0)
+  }[sortMode] || ((a,b)=>urgency(b)-urgency(a));
+  return arr.sort((a,b) => (a.done - b.done) || by(a,b));
+}
+function reindex(){
+  parents.forEach((p,i) => p.order = i);
+  parents.forEach(p => kidsOf(p.id).sort((a,b)=>(a.order||0)-(b.order||0)).forEach((k,i) => k.order = i));
+}
+function sortedParents(){ return parents.slice().sort((a,b)=>(a.order||0)-(b.order||0)); }
+
 function drawTasks(){
   const el = document.getElementById('taskList');
 
@@ -556,16 +587,17 @@ function drawTasks(){
     return;
   }
 
+  const man = sortMode === 'manual';
   let h = '';
   if (!parents.length) h += '<div class="hint">まず親タスクを追加。その下に子タスクを足していく</div>';
 
-  parents.forEach(p => {
-    h += `<div class="par" style="border-left-color:${p.color}">
-      <div class="par-h${p.done ? ' pdone' : ''}">
-        ${p.rep ? '' : `<span class="box${p.done?' on':''}" data-ptog="${p.id}" title="親タスクを完了"></span>`}
+  sortedParents().forEach(p => {
+    h += `<div class="par" data-pid="${p.id}" style="border-left-color:${p.color}">
+      <div class="par-h${p.done ? ' pdone' : ''}" draggable="true" data-dragp="${p.id}">
+        <span class="grip" title="ドラッグで並べ替え">⠿</span>
+        <span class="box${p.done?' on':''}" data-ptog="${p.id}" title="親タスクを完了"></span>
         <span class="par-t" data-ep="${p.id}" title="クリックで編集">${p.title}</span>
         ${p.done ? '<span class="rep">明朝9時に片付く</span>' : ''}
-        ${p.rep ? `<span class="rep">${repLabel(p.rep)}${p.nextAt ? ' · 次 ' + p.nextAt.slice(5).replace('-','/') : ''}</span>` : ''}
         <span class="add" data-p="${p.id}">${openAdd === p.id ? '閉じる' : '＋ 子タスク'}</span>
         <button class="tr" data-del="${p.id}" title="親タスクごと削除">${TRASH}</button>
       </div>`;
@@ -573,25 +605,18 @@ function drawTasks(){
     if (editP === p.id){
       h += `<div class="inline editbar">
         <input type="text" id="ep" value="${p.title.replace(/"/g,'&quot;')}" autocomplete="off">
-        <span class="lab">ルーチン</span>
-        <select id="rf">
-          <option value="">なし</option>
-          <option value="daily"${p.rep && p.rep.freq==='daily'?' selected':''}>毎日</option>
-          <option value="weekly"${p.rep && p.rep.freq==='weekly'?' selected':''}>毎週</option>
-          <option value="monthly"${p.rep && p.rep.freq==='monthly'?' selected':''}>毎月</option>
-          <option value="yearly"${p.rep && p.rep.freq==='yearly'?' selected':''}>毎年</option>
-        </select>
-        <span id="ropt"></span>
         <button class="btn sm pri" id="epsave">保存</button>
         <button class="btn sm" id="epcancel">やめる</button>
       </div>`;
     }
 
-    kidsOf(p.id).sort((a,b) => (a.done - b.done) || (urgency(b) - urgency(a))).forEach(k => {
-      h += `<div class="ch${k.done?' done':''}${sel===k.id?' sel':''}">
+    sortKids(kidsOf(p.id)).forEach(k => {
+      h += `<div class="ch${k.done?' done':''}${sel===k.id?' sel':''}" data-kid="${k.id}"${man && !k.done ? ' draggable="true"' : ''}>
+        ${man ? '<span class="grip sm" title="ドラッグで並べ替え">⠿</span>' : ''}
         <span class="box${k.done?' on':''}" data-tog="${k.id}"></span>
         ${k.waiting && !k.done ? `<span class="wm" style="border-color:${p.color}"></span>` : ''}
         <span class="ch-t" data-ek="${k.id}" title="クリックで編集">${k.title}</span>
+        ${k.rep && !k.done ? `<span class="rep">${repLabel(k.rep)}</span>` : ''}
         ${k.done ? '' : `<button class="nowbtn${k.now?' on':''}" data-now="${k.id}">now</button>`}
         <button class="tr" data-delk="${k.id}" title="削除">${TRASH}</button>
         <span class="u">${k.done ? '' : label(k)}</span></div>`;
@@ -601,6 +626,18 @@ function drawTasks(){
           <input type="date" id="ekd" value="${k.due || ''}">
           <span class="sl"><span class="lab">重要</span><input type="range" id="ekm" min="1" max="10" value="${k.imp}"><b id="ekmv">${k.imp}</b></span>
           <label class="cb"><input type="checkbox" id="ekw"${k.waiting?' checked':''}> 相手待ち</label>
+          <span class="lab">ルーチン</span>
+          <select id="rf">
+            <option value="">なし</option>
+            <option value="daily"${k.rep && k.rep.freq==='daily'?' selected':''}>毎日</option>
+            <option value="weekly"${k.rep && k.rep.freq==='weekly'?' selected':''}>毎週</option>
+            <option value="monthly"${k.rep && k.rep.freq==='monthly'?' selected':''}>毎月</option>
+            <option value="yearly"${k.rep && k.rep.freq==='yearly'?' selected':''}>毎年</option>
+          </select>
+          <span id="ropt"></span>
+          <span class="lab">親</span>
+          <select id="ekp">${sortedParents().map(x =>
+            `<option value="${x.id}"${x.id===k.parent?' selected':''}>${x.title}</option>`).join('')}</select>
           <button class="btn sm pri" id="eksave">保存</button>
           <button class="btn sm" id="ekcancel">やめる</button>
         </div>`;
@@ -610,9 +647,9 @@ function drawTasks(){
     if (openAdd === p.id){
       h += `<div class="inline">
         <input type="text" id="ni" placeholder="子タスク名" autocomplete="off">
-        ${p.rep ? '' : '<input type="date" id="nd">'}
+        <input type="date" id="nd">
         <span class="sl"><span class="lab">重要</span><input type="range" id="nm" min="1" max="10" value="5"><b id="nmv">5</b></span>
-        ${p.rep ? '' : '<label class="cb"><input type="checkbox" id="nw"> 相手待ち</label>'}
+        <label class="cb"><input type="checkbox" id="nw"> 相手待ち</label>
         <button class="btn sm pri" id="nadd">追加</button>
       </div>`;
     }
@@ -643,21 +680,8 @@ function drawTasks(){
     editK = editK === id ? null : id; editP = null; drawTasks();
     const i = document.getElementById('ek'); if (i){ i.focus(); i.select(); }
   }));
-  el.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', e => {
+  el.querySelectorAll('[data-ptog]').forEach(b => b.addEventListener('click', e => {
     e.stopPropagation();
-    const id = b.dataset.del, n = kidsOf(id).length;
-    if (n && !confirm(`子タスク${n}件ごと削除する`)) return;
-    parents = parents.filter(p => p.id !== id);
-    kids = kids.filter(k => k.parent !== id);
-    if (openAdd === id) openAdd = null;
-    render();
-  }));
-  el.querySelectorAll('[data-delk]').forEach(b => b.addEventListener('click', e => {
-    e.stopPropagation();
-    kids = kids.filter(k => k.id !== b.dataset.delk);
-    render();
-  }));
-  el.querySelectorAll('[data-ptog]').forEach(b => b.addEventListener('click', () => {
     const p = parents.find(x => x.id === b.dataset.ptog);
     p.done = !p.done;
     p.doneAt = p.done ? today() : null;
@@ -668,17 +692,54 @@ function drawTasks(){
     }
     render();
   }));
-  el.querySelectorAll('[data-tog]').forEach(b => b.addEventListener('click', () => {
+  el.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    const id = b.dataset.del, n = kidsOf(id).length;
+    if (n && !confirm(`子タスク${n}件ごと削除する`)) return;
+    parents = parents.filter(x => x.id !== id);
+    kids = kids.filter(k => k.parent !== id);
+    if (openAdd === id) openAdd = null;
+    reindex(); render();
+  }));
+  el.querySelectorAll('[data-delk]').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    kids = kids.filter(k => k.id !== b.dataset.delk);
+    reindex(); render();
+  }));
+  el.querySelectorAll('[data-tog]').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
     const k = kids.find(x => x.id === b.dataset.tog);
     k.done = !k.done; k.doneAt = k.done ? today() : null; if (k.done) k.now = false;
     render();
   }));
-  el.querySelectorAll('[data-now]').forEach(b => b.addEventListener('click', () => {
+  el.querySelectorAll('[data-now]').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
     const k = kids.find(x => x.id === b.dataset.now); k.now = !k.now; render();
   }));
 
+  bindDrag(el);
+
   const ekm = document.getElementById('ekm');
   if (ekm) ekm.addEventListener('input', e => document.getElementById('ekmv').textContent = e.target.value);
+
+  const rf = document.getElementById('rf');
+  if (rf){
+    const k = kids.find(x => x.id === editK);
+    const opt = document.getElementById('ropt');
+    const drawOpt = f => {
+      const r = (k && k.rep) || {};
+      if (f === 'weekly') opt.innerHTML = `<select id="rv">${WD.map((w,i) =>
+        `<option value="${i}"${(r.wd !== undefined ? r.wd : now().getDay())===i?' selected':''}>${w}曜</option>`).join('')}</select>`;
+      else if (f === 'monthly') opt.innerHTML = `<select id="rv">${Array.from({length:31},(_,i)=>i+1).map(d =>
+        `<option value="${d}"${(r.dm !== undefined ? r.dm : now().getDate())===d?' selected':''}>${d}日</option>`).join('')}</select>`;
+      else if (f === 'yearly') opt.innerHTML = `<input type="date" id="rv" value="${r.mo ?
+        `${now().getFullYear()}-${String(r.mo).padStart(2,'0')}-${String(r.dm).padStart(2,'0')}` : today()}">`;
+      else opt.innerHTML = '';
+    };
+    drawOpt(rf.value);
+    rf.addEventListener('change', () => drawOpt(rf.value));
+  }
+
   const eksave = document.getElementById('eksave');
   if (eksave){
     const go = () => {
@@ -692,7 +753,20 @@ function drawTasks(){
       if (w && !k.waiting) k.since = today();
       if (!w) k.since = null;
       k.waiting = w;
-      editK = null; render();
+      const np = document.getElementById('ekp').value;
+      if (np !== k.parent){ k.parent = np; k.order = 9999; }
+      const f = document.getElementById('rf').value;
+      if (!f){ k.rep = null; k.nextAt = null; }
+      else {
+        const v = document.getElementById('rv');
+        const r = {freq:f};
+        if (f === 'weekly')  r.wd = +v.value;
+        if (f === 'monthly') r.dm = +v.value;
+        if (f === 'yearly'){ const dt = atDayStart(v.value); r.mo = dt.getMonth()+1; r.dm = dt.getDate(); }
+        k.rep = r; k.nextAt = firstOccurrence(r);
+        if (!k.due) k.due = k.nextAt;
+      }
+      editK = null; reindex(); render();
     };
     eksave.addEventListener('click', go);
     document.getElementById('ek').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
@@ -715,51 +789,17 @@ function drawTasks(){
   const nm = document.getElementById('nm');
   if (nm) nm.addEventListener('input', e => document.getElementById('nmv').textContent = e.target.value);
 
-  const rf = document.getElementById('rf');
-  if (rf){
-    const p = parents.find(x => x.id === editP);
-    const opt = document.getElementById('ropt');
-    const drawOpt = f => {
-      const r = p.rep || {};
-      if (f === 'weekly') opt.innerHTML = `<select id="rv">${WD.map((w,i) =>
-        `<option value="${i}"${(r.wd !== undefined ? r.wd : now().getDay())===i?' selected':''}>${w}曜</option>`).join('')}</select>`;
-      else if (f === 'monthly') opt.innerHTML = `<select id="rv">${Array.from({length:31},(_,i)=>i+1).map(d =>
-        `<option value="${d}"${(r.dm !== undefined ? r.dm : now().getDate())===d?' selected':''}>${d}日</option>`).join('')}</select>`;
-      else if (f === 'yearly') opt.innerHTML = `<input type="date" id="rv" value="${r.mo ?
-        `${now().getFullYear()}-${String(r.mo).padStart(2,'0')}-${String(r.dm).padStart(2,'0')}` : today()}">`;
-      else opt.innerHTML = '';
-    };
-    const apply = () => {
-      const f = rf.value;
-      if (!f){ p.rep = null; p.nextAt = null; render(); return; }
-      const v = document.getElementById('rv');
-      const r = {freq:f};
-      if (f === 'weekly')  r.wd = +v.value;
-      if (f === 'monthly') r.dm = +v.value;
-      if (f === 'yearly'){ const dt = atDayStart(v.value); r.mo = dt.getMonth()+1; r.dm = dt.getDate(); }
-      p.rep = r; p.nextAt = firstOccurrence(r);
-      if (!p.tpl) p.tpl = kidsOf(p.id).filter(k => !k.done).map(k => ({title:k.title, imp:k.imp}));
-      kidsOf(p.id).forEach(k => { if (!k.done && !k.due) k.due = p.nextAt; });
-      render();
-    };
-    drawOpt(rf.value);
-    rf.addEventListener('change', () => { drawOpt(rf.value); apply(); });
-    opt.addEventListener('change', apply);
-  }
-
   const nadd = document.getElementById('nadd');
   if (nadd){
     const go = () => {
       const t = document.getElementById('ni').value.trim();
       if (!t) return document.getElementById('ni').focus();
-      const p = parents.find(x => x.id === openAdd);
-      const imp = +document.getElementById('nm').value;
-      const wEl = document.getElementById('nw'), dEl = document.getElementById('nd');
-      const w = wEl ? wEl.checked : false;
-      if (p.rep){ p.tpl = p.tpl || []; p.tpl.push({title:t, imp}); }
-      kids.push({id:'k'+(uid++), parent:openAdd, title:t, imp,
-        due: p.rep ? p.nextAt : (dEl && dEl.value ? dEl.value : null),
-        waiting:w, since:w ? today() : null, done:false, doneAt:null, now:false, arch:false});
+      const w = document.getElementById('nw').checked;
+      const dEl = document.getElementById('nd');
+      kids.push({id:'k'+(uid++), parent:openAdd, title:t, imp:+document.getElementById('nm').value,
+        due: dEl.value || null, waiting:w, since:w ? today() : null,
+        done:false, doneAt:null, now:false, arch:false, rep:null, nextAt:null,
+        order: kidsOf(openAdd).length});
       render();
       const i = document.getElementById('ni'); if (i) i.focus();
     };
@@ -774,7 +814,8 @@ function drawTasks(){
       const t = document.getElementById('pi').value.trim();
       if (!t) return;
       const id = 'p'+(uid++);
-      parents.push({id, title:t, color:COLORS[parents.length % COLORS.length], rep:null, nextAt:null, tpl:null, done:false, doneAt:null});
+      parents.push({id, title:t, color:COLORS[parents.length % COLORS.length],
+        done:false, doneAt:null, order:parents.length});
       addingParent = false; openAdd = id; render();
       const i = document.getElementById('ni'); if (i) i.focus();
     };
@@ -782,6 +823,76 @@ function drawTasks(){
     document.getElementById('pi').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
     document.getElementById('pcancel').addEventListener('click', () => { addingParent = false; drawTasks(); });
   }
+}
+
+let drag = null;
+
+function bindDrag(el){
+  el.querySelectorAll('[data-dragp]').forEach(n => {
+    n.addEventListener('dragstart', e => {
+      drag = {type:'p', id:n.dataset.dragp};
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', n.dataset.dragp);
+    });
+    n.addEventListener('dragend', () => { drag = null; clearDropMark(el); });
+    n.addEventListener('dragover', e => {
+      if (!drag) return;
+      e.preventDefault();
+      clearDropMark(el);
+      n.classList.add('drop');
+    });
+    n.addEventListener('drop', e => {
+      e.preventDefault(); e.stopPropagation();
+      const tid = n.dataset.dragp;
+      if (!drag) return;
+      if (drag.type === 'p') movePar(drag.id, tid);
+      else moveKid(drag.id, tid, null);
+      drag = null; reindex(); render();
+    });
+  });
+  el.querySelectorAll('[data-kid]').forEach(n => {
+    n.addEventListener('dragstart', e => {
+      drag = {type:'k', id:n.dataset.kid};
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', n.dataset.kid);
+      e.stopPropagation();
+    });
+    n.addEventListener('dragend', () => { drag = null; clearDropMark(el); });
+    n.addEventListener('dragover', e => {
+      if (!drag || drag.type !== 'k') return;
+      e.preventDefault(); e.stopPropagation();
+      clearDropMark(el);
+      n.classList.add('drop');
+    });
+    n.addEventListener('drop', e => {
+      if (!drag || drag.type !== 'k') return;
+      e.preventDefault(); e.stopPropagation();
+      const t = kids.find(x => x.id === n.dataset.kid);
+      moveKid(drag.id, t.parent, t.id);
+      drag = null; reindex(); render();
+    });
+  });
+}
+function clearDropMark(el){ el.querySelectorAll('.drop').forEach(x => x.classList.remove('drop')); }
+
+function movePar(from, to){
+  if (from === to) return;
+  const arr = sortedParents();
+  const f = arr.findIndex(p => p.id === from), t = arr.findIndex(p => p.id === to);
+  arr.splice(t, 0, arr.splice(f, 1)[0]);
+  arr.forEach((p, i) => p.order = i);
+}
+function moveKid(from, toParent, beforeId){
+  const k = kids.find(x => x.id === from);
+  if (!k) return;
+  k.parent = toParent;
+  if (sortMode !== 'manual') return;
+  const arr = kidsOf(toParent).sort((a,b)=>(a.order||0)-(b.order||0));
+  const cur = arr.findIndex(x => x.id === from);
+  if (cur >= 0) arr.splice(cur, 1);
+  const at = beforeId ? arr.findIndex(x => x.id === beforeId) : arr.length;
+  arr.splice(at < 0 ? arr.length : at, 0, k);
+  arr.forEach((x, i) => x.order = i);
 }
 
 function drawWait(){
@@ -930,6 +1041,11 @@ function fitHeights(){
 }
 function render(){ cycleCheck(); scheduleSave(); drawClock(); drawLegend(); drawMatrix(); drawNow(); drawTasks(); drawWait(); }
 
+document.getElementById('sortSel').addEventListener('change', e => {
+  sortMode = e.target.value;
+  if (sortMode === 'manual') reindex();
+  drawTasks();
+});
 document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => {
   document.querySelectorAll('.tab').forEach(x => x.classList.remove('on'));
   b.classList.add('on'); view = b.dataset.v; drawTasks();
