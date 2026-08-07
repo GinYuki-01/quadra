@@ -187,6 +187,10 @@ svg.mx{display:block;width:100%;height:100%}
   font-size:11px;color:var(--ink-2);background:#fff}
 .phx{gap:8px}
 .phx .tabs{margin-left:auto}
+.pcv{font-size:9px;color:var(--ink-3);width:11px;flex:none;cursor:pointer;transition:color .12s}
+.pcv:hover{color:var(--ink)}
+.pcount{font-size:10px;color:var(--ink-3);border:1px solid var(--line-2);border-radius:99px;
+  padding:0 6px;font-variant-numeric:tabular-nums;flex:none}
 .grip{color:var(--ink-3);font-size:12px;cursor:grab;letter-spacing:-1px;flex:none;opacity:.45}
 .grip:active{cursor:grabbing}
 .grip.sm{font-size:10px}
@@ -384,7 +388,7 @@ svg.mx{display:block;width:100%;height:100%}
             <option value="urgency">緊急度順</option>
             <option value="due">締切順</option>
             <option value="imp">重要度順</option>
-            <option value="manual">手動</option>
+            <option value="manual">手動・並び替え</option>
           </select>
         </div>
         <div class="pb" id="taskList"></div>
@@ -574,6 +578,7 @@ let view = 'open', hidden = new Set(), sel = null, selDir = null;
 let openAdd = null, addingParent = false, editK = null, editP = null;
 let sortMode = 'urgency';
 let openStep = null;
+let collapsed = new Set();
 let adding = null;
 let dirSort = 'name';
 let folderFirst = true, dirEdit = null, cwd = null;
@@ -809,10 +814,13 @@ function drawTasks(){
 
   sortedParents().forEach(p => {
     h += `<div class="par" data-pid="${p.id}" style="border-left-color:${p.color}">
-      <div class="par-h${p.done ? ' pdone' : ''}" draggable="true" data-dragp="${p.id}">
-        <span class="grip" title="ドラッグで並べ替え">⠿</span>
+      <div class="par-h${p.done ? ' pdone' : ''}"${man ? ` draggable="true" data-dragp="${p.id}"` : ''}>
+        ${man
+          ? '<span class="grip" title="ドラッグで並べ替え">⠿</span>'
+          : `<span class="pcv" data-foldp="${p.id}" title="開閉">${collapsed.has(p.id) ? '▸' : '▾'}</span>`}
         <span class="par-t" data-p="${p.id}" title="クリックで子タスクを追加">${p.title}</span>
         <button class="editbtn" data-ep="${p.id}">編集</button>
+        ${collapsed.has(p.id) ? `<span class="pcount">${kidsOf(p.id).filter(k=>!k.done).length}</span>` : ''}
         <span class="add" data-p="${p.id}">${openAdd === p.id ? '閉じる' : '＋ 子タスク'}</span>
         <button class="tr" data-del="${p.id}" title="親タスクごと削除">${TRASH}</button>
       </div>`;
@@ -825,7 +833,7 @@ function drawTasks(){
       </div>`;
     }
 
-    sortKids(kidsOf(p.id)).forEach(k => {
+    if (!collapsed.has(p.id)) sortKids(kidsOf(p.id)).forEach(k => {
       h += `<div class="ch${k.done?' done':''}${sel===k.id?' sel':''}" data-kid="${k.id}"${man && !k.done ? ' draggable="true"' : ''}>
         ${man ? '<span class="grip sm" title="ドラッグで並べ替え">⠿</span>' : ''}
         <span class="box${k.done?' on':''}" data-tog="${k.id}"></span>
@@ -881,7 +889,7 @@ function drawTasks(){
       }
     });
 
-    if (openAdd === p.id){
+    if (openAdd === p.id && !collapsed.has(p.id)){
       h += `<div class="inline">
         <input type="text" id="ni" placeholder="子タスク名" autocomplete="off">
         <span class="lab">連絡日</span><input type="date" id="nr" value="${today()}">
@@ -919,6 +927,17 @@ function drawTasks(){
     const id = n.dataset.p;
     openAdd = openAdd === id ? null : id; editP = null; editK = null; openStep = null; drawTasks();
     const i = document.getElementById('ni'); if (i) i.focus();
+  }));
+  el.querySelectorAll('[data-foldp]').forEach(n => n.addEventListener('click', e => {
+    e.stopPropagation();
+    const id = n.dataset.foldp;
+    if (e.altKey){
+      const anyOpen = parents.some(p => !collapsed.has(p.id));
+      collapsed = anyOpen ? new Set(parents.map(p => p.id)) : new Set();
+    } else {
+      collapsed.has(id) ? collapsed.delete(id) : collapsed.add(id);
+    }
+    drawTasks();
   }));
   el.querySelectorAll('[data-ep]').forEach(n => n.addEventListener('click', e => {
     e.stopPropagation();
