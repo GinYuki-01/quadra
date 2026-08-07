@@ -257,6 +257,19 @@ svg.mx{display:block;width:100%;height:100%}
 .vt{font-size:10.5px;color:var(--ink-3);padding:2px 8px;border-radius:99px}
 .vt.on{color:var(--ink);background:#f0f0ee}
 .cvt{font-size:8px;color:var(--ink-3);width:10px;flex:none}
+.dn.folder,.dn.entry{align-items:stretch;min-height:26px}
+.dn.folder > span:not(.gl):not(.el),.dn.entry > span:not(.gl):not(.el){align-self:center}
+.dn.folder > button,.dn.entry > button{align-self:center}
+.gl,.el{width:14px;flex:none;position:relative;margin-right:-2px}
+.gl.v::before,.el::before{content:"";position:absolute;left:6px;top:0;bottom:0;
+  border-left:1px solid var(--line-2)}
+.el.last::before{bottom:auto;height:50%}
+.el::after{content:"";position:absolute;left:6px;top:50%;width:8px;
+  border-top:1px solid var(--line-2)}
+.ficon{width:13px;height:10px;flex:none;border:1px solid var(--ink-3);border-top-width:3px;
+  border-radius:1.5px 2px 2px 2px;opacity:.75}
+.ficon.file{width:10px;height:12px;border:1px solid var(--line-2);border-top-width:1px;
+  border-radius:2px;background:linear-gradient(#fff 60%, #f4f4f2)}
 .crumbs{display:flex;align-items:center;flex-wrap:wrap;gap:5px;padding:0 2px 8px;
   border-bottom:1px solid var(--line-3);margin-bottom:6px}
 .cr{font-size:11.5px;color:var(--ink-3);cursor:pointer;padding:1px 4px;border-radius:3px}
@@ -1359,25 +1372,34 @@ function dirForm(depth){
       <button class="btn sm" id="dcancel">やめる</button></div></div>`;
 }
 
-function treeRow(d, depth){
-  const pad = 6 + depth * 15;
+function guides(pre, last){
+  let h = pre.map(v => `<span class="gl${v ? ' v' : ''}"></span>`).join('');
+  h += `<span class="el${last ? ' last' : ''}"></span>`;
+  return h;
+}
+
+function treeRow(d, pre, last){
   const isF = d.type === 'folder';
+  const g = guides(pre, last);
   if (!isF){
-    return `<div class="dn entry${selDir === d.id ? ' sel' : ''}" data-did="${d.id}" data-type="entry"
-      draggable="true" style="padding-left:${pad + 16}px">
+    return `<div class="dn entry${selDir === d.id ? ' sel' : ''}" data-did="${d.id}" data-type="entry" draggable="true">
+      ${g}<span class="ficon file"></span>
       <span class="en">${d.name}</span>
+      ${d.path ? `<span class="ppeek">${d.path}</span>` : ''}
       <button class="tr" data-del="${d.id}" title="ゴミ箱へ">${TRASH}</button></div>`;
   }
   const open = expanded.has(d.id);
-  let h = `<div class="dn folder" data-did="${d.id}" data-type="folder" data-fold="${d.id}"
-    draggable="true" style="padding-left:${pad}px">
-    <span class="cvt">${open ? '▾' : '▸'}</span>
+  const list = dirChildren(d.id);
+  let h = `<div class="dn folder" data-did="${d.id}" data-type="folder" data-fold="${d.id}" draggable="true">
+    ${g}<span class="cvt">${open ? '▾' : '▸'}</span>
+    <span class="ficon"></span>
     <span class="fn">${d.name}</span>
-    <span class="cnum">${dirChildren(d.id).length || ''}</span>
+    <span class="cnum">${list.length || ''}</span>
     <button class="tr" data-del="${d.id}" title="ゴミ箱へ">${TRASH}</button></div>`;
   if (open){
-    h += dirChildren(d.id).map(c => treeRow(c, depth + 1)).join('');
-    if (adding && adding.parent === d.id) h += dirForm(depth + 1);
+    const sub = pre.concat([!last]);
+    h += list.map((c, i) => treeRow(c, sub, i === list.length - 1 && !(adding && adding.parent === d.id))).join('');
+    if (adding && adding.parent === d.id) h += dirForm(sub.length);
   }
   return h;
 }
@@ -1423,11 +1445,11 @@ function drawDirs(){
     h += `<div class="inbox-h">INBOX <span class="n">${inbox.length}</span>
       <button class="x" id="quickNew">＋ とりあえず登録</button></div>`;
     if (adding && adding.parent === INBOX) h += dirForm(0);
-    h += inbox.length ? inbox.map(d => treeRow(d, 0)).join('')
+    h += inbox.length ? inbox.map((d,i) => treeRow(d, [], i === inbox.length - 1)).join('')
        : (adding && adding.parent === INBOX ? '' : '<div class="hint">パスと名前だけ入れて後で整理</div>');
     h += '<div class="inbox-sep"></div>';
     const roots = dirChildren(null);
-    h += roots.map(d => treeRow(d, 0)).join('');
+    h += roots.map((d,i) => treeRow(d, [], i === roots.length - 1)).join('');
     if (adding && adding.parent === null) h += dirForm(0);
     if (!roots.length && !(adding && adding.parent === null)) h += '<div class="hint">フォルダかパスを追加</div>';
     h += `<div class="dbar">
