@@ -1225,6 +1225,12 @@ function drawDirs(){
     adding = {parent:null, type:b.dataset.new};
     drawDirs(); document.getElementById('dnm').focus();
   }));
+  const qn = document.getElementById('quickNew');
+  if (qn) qn.addEventListener('click', () => {
+    adding = {parent:INBOX, type:'entry'};
+    drawDirs();
+    const i = document.getElementById('dnm'); if (i) i.focus();
+  });
   tree.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', e => {
     e.stopPropagation();
     const id = b.dataset.del, d = dirs.find(x => x.id === id);
@@ -1252,7 +1258,10 @@ function drawDirs(){
     da.addEventListener('click', go);
     document.getElementById('dcancel').addEventListener('click', () => { adding = null; drawDirs(); });
     ['dnm','dpt','dnt'].forEach(i => { const el = document.getElementById(i);
-      if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') go(); }); });
+      if (el) el.addEventListener('keydown', e => {
+        if (e.key === 'Enter') go();
+        if (e.key === 'Escape'){ e.stopPropagation(); adding = null; drawDirs(); }
+      }); });
   }
 
   const d = dirs.find(x => x.id === selDir);
