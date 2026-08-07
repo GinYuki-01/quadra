@@ -188,6 +188,13 @@ svg.mx{display:block;width:100%;height:100%}
 .st .tr{width:16px;height:16px}
 .stadd{padding-left:34px}
 .stadd input{flex:1;min-width:120px}
+.waitbtn{font-size:10px;color:var(--ink-3);border:1px solid var(--line-2);border-radius:99px;
+  padding:0 6px;flex:none;opacity:0}
+.st:hover .waitbtn{opacity:1}
+.waitbtn.on{opacity:1;color:var(--ink);border-color:var(--ink)}
+.wm.sm{width:7px;height:7px}
+.wt .sub{color:var(--ink-3);font-size:11px}
+.st .u{font-size:10px;color:var(--ink-3);font-variant-numeric:tabular-nums;flex:none}
 .stepn{font-size:10px;color:var(--ink-3);border:1px solid var(--line-2);border-radius:99px;
   padding:0 5px;flex:none;font-variant-numeric:tabular-nums}
 .editbtn{font-size:10.5px;color:var(--ink-3);flex:none;opacity:0}
@@ -542,6 +549,11 @@ function label(k){
   if (R < 1) return '本日';
   return '残り' + Math.floor(R) + '日';
 }
+function stepLabel(st){
+  if (!st.since) return '';
+  const e = Math.floor((now() - atDayStart(st.since)) / DAY);
+  return e < 1 ? '本日' : e + '日経過';
+}
 const active = () => kids.filter(k => !k.done && !k.arch && !hidden.has(k.parent));
 
 const M = {x0:54, x1:450, y0:30, y1:426};
@@ -746,12 +758,16 @@ function drawTasks(){
       if (!k.done && (k.steps||[]).length){
         h += (k.steps||[]).map(st => `<div class="st${st.done?' done':''}" data-stid="${st.id}">
           <span class="stbox${st.done?' on':''}" data-sttog="${st.id}"></span>
+          ${st.waiting && !st.done ? `<span class="wm sm" style="border-color:${p.color}"></span>` : ''}
           <span class="stt">${st.text}</span>
+          ${st.done ? '' : `<button class="waitbtn${st.waiting?' on':''}" data-stwait="${st.id}">待ち</button>`}
+          ${st.waiting && !st.done ? `<span class="u">${stepLabel(st)}</span>` : ''}
           <button class="tr" data-stdel="${st.id}">${TRASH}</button></div>`).join('');
       }
       if (openStep === k.id){
         h += `<div class="inline stadd">
           <input type="text" id="si" placeholder="経過を追記" autocomplete="off">
+          <label class="cb"><input type="checkbox" id="sw"> 相手待ち</label>
           <button class="btn sm pri" id="sadd">追記</button>
         </div>`;
       }
@@ -843,6 +859,16 @@ function drawTasks(){
     kids.forEach(k => (k.steps||[]).forEach(st => { if (st.id === id) st.done = !st.done; }));
     render();
   }));
+  el.querySelectorAll('[data-stwait]').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    const id = b.dataset.stwait;
+    kids.forEach(k => (k.steps||[]).forEach(st => {
+      if (st.id !== id) return;
+      st.waiting = !st.waiting;
+      st.since = st.waiting ? (st.since || today()) : null;
+    }));
+    render();
+  }));
   el.querySelectorAll('[data-stdel]').forEach(b => b.addEventListener('click', e => {
     e.stopPropagation();
     const id = b.dataset.stdel;
@@ -890,7 +916,8 @@ function drawTasks(){
       if (!t) return inp.focus();
       const k = kids.find(x => x.id === openStep);
       k.steps = k.steps || [];
-      k.steps.push({id:'s'+(uid++), text:t, done:false});
+      const w = document.getElementById('sw').checked;
+      k.steps.push({id:'s'+(uid++), text:t, done:false, waiting:w, since:w ? today() : null});
       render();
       const i = document.getElementById('si'); if (i) i.focus();
     };
@@ -1143,12 +1170,18 @@ function moveKid(from, toParent, beforeId){
 }
 
 function drawWait(){
-  const l = kids.filter(k => k.waiting && !k.done).sort((a,b) => urgency(b) - urgency(a));
+  const l = kids.filter(k => k.waiting && !k.done && !k.arch)
+    .map(k => ({c:colorOf(k), t:k.title, sub:'', e:label(k), u:urgency(k)}));
+  kids.filter(k => !k.done && !k.arch).forEach(k =>
+    (k.steps||[]).filter(st => st.waiting && !st.done).forEach(st =>
+      l.push({c:colorOf(k), t:st.text, sub:k.title, e:stepLabel(st), u:urgency(k)})));
+  l.sort((a,b) => b.u - a.u);
   document.getElementById('waitCount').textContent = l.length || '';
-  document.getElementById('waitList').innerHTML = l.length ? l.map(k =>
-    `<div class="wt"><span class="d" style="border-color:${colorOf(k)}"></span>
-      <span class="t">${k.title}</span><span class="e">${label(k)}</span></div>`).join('')
-    : '<div class="empty">「相手待ち」を付けた子タスクがここに並ぶ</div>';
+  document.getElementById('waitList').innerHTML = l.length ? l.map(x =>
+    `<div class="wt"><span class="d" style="border-color:${x.c}"></span>
+      <span class="t">${x.sub ? `<span class="sub">${x.sub} › </span>` : ''}${x.t}</span>
+      <span class="e">${x.e}</span></div>`).join('')
+    : '<div class="empty">「相手待ち」を付けたものがここに並ぶ</div>';
 }
 
 function dirChildren(pid){ return dirs.filter(d => d.p === pid); }
