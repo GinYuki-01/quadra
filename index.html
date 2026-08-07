@@ -317,6 +317,7 @@ svg.mx{display:block;width:100%;height:100%}
 </div>
 <script>
 const HORIZON = 30, DAY = 86400000;
+const MIN_U = 12, NODUE_BASE = 25, NODUE_CAP = 85, NODUE_DAYS = 7;
 const COLORS = ['#5E7A94','#A87C63','#7C9478','#8C82A6','#B08494','#99976B','#6E9698','#8A8A87'];
 let offset = 0;
 const DAY_START = 9;
@@ -421,17 +422,28 @@ const parOf = k => parents.find(p => p.id === k.parent);
 const colorOf = k => parOf(k) ? parOf(k).color : COLORS[7];
 
 function daysLeft(k){ return k.due ? (atDayStart(k.due) - now()) / DAY : null; }
+function elapsed(k){
+  const base = k.recv || k.since || null;
+  return base ? (now() - atDayStart(base)) / DAY : 0;
+}
 function urgency(k){
-  let u = 5, R = daysLeft(k);
-  if (R !== null) u = R <= 0 ? 100 : 100 * (1 - Math.log(1 + R) / Math.log(1 + HORIZON));
-  if (k.waiting && k.since) u = Math.max(u, Math.min(100, (now() - atDayStart(k.since)) / DAY * 12));
-  return Math.max(5, Math.min(100, u));
+  const R = daysLeft(k);
+  let u;
+  if (R !== null){
+    u = R <= 0 ? 100 : 100 * (1 - Math.log(1 + R) / Math.log(1 + HORIZON));
+  } else {
+    const e = Math.max(0, elapsed(k));
+    u = NODUE_BASE + (NODUE_CAP - NODUE_BASE) * Math.min(1, e / NODUE_DAYS);
+  }
+  return Math.max(MIN_U, Math.min(100, u));
 }
 function urgencyBack(k, d){ const s = offset; offset -= d; const v = urgency(k); offset = s; return v; }
 function label(k){
-  if (k.waiting && k.since) return Math.floor((now() - atDayStart(k.since))/DAY) + '日経過';
   const R = daysLeft(k);
-  if (R === null) return '期限なし';
+  if (R === null){
+    const e = Math.floor(Math.max(0, elapsed(k)));
+    return e < 1 ? '本日受領' : '受領から' + e + '日';
+  }
   if (R < 0) return Math.ceil(-R) + '日超過';
   if (R < 1) return '本日';
   return '残り' + Math.floor(R) + '日';
@@ -439,7 +451,7 @@ function label(k){
 const active = () => kids.filter(k => !k.done && !k.arch && !hidden.has(k.parent));
 
 const M = {x0:54, x1:450, y0:30, y1:426};
-const px = u => M.x0 + (u - 5) / 95 * (M.x1 - M.x0);
+const px = u => M.x0 + u / 100 * (M.x1 - M.x0);
 const py = i => M.y1 - (i - 1) / 9 * (M.y1 - M.y0);
 
 function drawMatrix(){
@@ -637,7 +649,8 @@ function drawTasks(){
       if (editK === k.id){
         h += `<div class="inline editbar">
           <input type="text" id="ek" value="${k.title.replace(/"/g,'&quot;')}" autocomplete="off">
-          <input type="date" id="ekd" value="${k.due || ''}">
+          <span class="lab">連絡日</span><input type="date" id="ekr" value="${k.recv || ''}">
+          <span class="lab">締切</span><input type="date" id="ekd" value="${k.due || ''}">
           <span class="sl"><span class="lab">重要</span><input type="range" id="ekm" min="1" max="10" value="${k.imp}"><b id="ekmv">${k.imp}</b></span>
           <label class="cb"><input type="checkbox" id="ekw"${k.waiting?' checked':''}> 相手待ち</label>
           <span class="lab">ルーチン</span>
@@ -661,7 +674,8 @@ function drawTasks(){
     if (openAdd === p.id){
       h += `<div class="inline">
         <input type="text" id="ni" placeholder="子タスク名" autocomplete="off">
-        <input type="date" id="nd">
+        <span class="lab">連絡日</span><input type="date" id="nr" value="${today()}">
+        <span class="lab">締切</span><input type="date" id="nd">
         <span class="sl"><span class="lab">重要</span><input type="range" id="nm" min="1" max="10" value="5"><b id="nmv">5</b></span>
         <label class="cb"><input type="checkbox" id="nw"> 相手待ち</label>
         <span class="lab">ルーチン</span>
@@ -766,6 +780,7 @@ function drawTasks(){
       const w = document.getElementById('ekw').checked;
       k.title = t;
       k.due = document.getElementById('ekd').value || null;
+      k.recv = document.getElementById('ekr').value || k.recv || today();
       k.imp = +document.getElementById('ekm').value;
       if (w && !k.waiting) k.since = today();
       if (!w) k.since = null;
@@ -839,7 +854,8 @@ function drawTasks(){
         if (!due) due = nextAt;
       }
       kids.push({id:'k'+(uid++), parent:openAdd, title:t, imp:+document.getElementById('nm').value,
-        due, waiting:w, since:w ? today() : null,
+        due, recv: document.getElementById('nr').value || today(),
+        waiting:w, since:w ? today() : null,
         done:false, doneAt:null, now:false, arch:false, rep, nextAt,
         order: kidsOf(openAdd).length});
       render();
@@ -1144,6 +1160,7 @@ function snapshot(){ lastSavedAt = Date.now(); return {v:1, savedAt:lastSavedAt,
 function restore(d){
   if (!d) return false;
   parents = d.parents || []; kids = d.kids || []; dirs = d.dirs || [];
+  kids.forEach(k => { if (!k.recv) k.recv = k.since || k.doneAt || today(); });
   uid = d.uid || 1;
   lastSavedAt = d.savedAt || 0;
   return true;
