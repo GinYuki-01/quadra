@@ -268,6 +268,9 @@ svg.mx{display:block;width:100%;height:100%}
 .el.last::before{bottom:auto;height:50%}
 .el::after{content:"";position:absolute;left:6px;top:50%;width:8px;
   border-top:1px solid var(--line-2)}
+.dcol{width:4px;height:14px;border-radius:2px;flex:none;margin-right:1px}
+.dcol.none{background:transparent}
+.dcol.lg{width:14px;height:14px;border-radius:3px}
 .ficon{width:13px;height:10px;flex:none;border:1px solid var(--ink-3);border-top-width:3px;
   border-radius:1.5px 2px 2px 2px;opacity:.75}
 .ficon.file{width:10px;height:12px;border:1px solid var(--line-2);border-top-width:1px;
@@ -340,8 +343,8 @@ svg.mx{display:block;width:100%;height:100%}
       <line x1="6" y1="4" x2="6" y2="58" stroke="#2f2f33" stroke-width="1.2"/>
       <line x1="33" y1="4" x2="33" y2="58" stroke="#d5d5d1" stroke-width="1"/>
       <line x1="6" y1="31" x2="60" y2="31" stroke="#d5d5d1" stroke-width="1"/>
-      <path id="trace" d="M6 50 L50 8" stroke="#5E7A94" stroke-width="2" fill="none" stroke-linecap="round"/>
-      <circle id="seed" cx="0" cy="0" r="3.4" fill="#5E7A94"/>
+      <path id="trace" d="M6 50 L50 8" stroke="#2F5D8C" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <circle id="seed" cx="0" cy="0" r="3.4" fill="#2F5D8C"/>
     </svg>
     <div class="lg-brand"><b>Quadra</b></div>
     <div class="lg-sum" id="lsum"></div>
@@ -353,7 +356,7 @@ svg.mx{display:block;width:100%;height:100%}
 <div id="app">
 
 <header>
-  <div class="brand"><svg class="mk" viewBox="0 0 20 20" aria-hidden="true"><path d="M2 18h16M2 18V2" stroke="#2f2f33" stroke-width="1.3" fill="none" stroke-linecap="round"/><path d="M10 18V6M2 10h8" stroke="#d5d5d1" stroke-width="1" fill="none"/><circle cx="14" cy="5" r="2.6" fill="#5E7A94"/></svg><b>Quadra</b></div>
+  <div class="brand"><svg class="mk" viewBox="0 0 20 20" aria-hidden="true"><path d="M2 18h16M2 18V2" stroke="#2f2f33" stroke-width="1.3" fill="none" stroke-linecap="round"/><path d="M10 18V6M2 10h8" stroke="#d5d5d1" stroke-width="1" fill="none"/><circle cx="14" cy="5" r="2.6" fill="#2F5D8C"/></svg><b>Quadra</b></div>
   <div class="hdr">
     <span class="save-st" id="saveSt"><i></i><span id="saveTx">未接続</span></span>
     <button class="btn sm" id="linkBtn">ファイル接続</button>
@@ -426,7 +429,7 @@ svg.mx{display:block;width:100%;height:100%}
 <script>
 const HORIZON = 30, DAY = 86400000;
 const MIN_U = 12, NODUE_BASE = 25, NODUE_CAP = 85, NODUE_DAYS = 7;
-const COLORS = ['#5E7A94','#A87C63','#7C9478','#8C82A6','#B08494','#99976B','#6E9698','#8A8A87'];
+const COLORS = ['#2F5D8C','#A8562F','#3F7A52','#6B5CA5','#B24A63','#A8862B','#2A7F87','#5B5B5E'];
 let offset = 0;
 const DAY_START = 9;
 
@@ -1355,6 +1358,7 @@ function dirRow(d){
   const n = isF ? dirChildren(d.id).length : 0;
   return `<div class="dn ${isF ? 'folder' : 'entry'}${selDir === d.id ? ' sel' : ''}"
       data-did="${d.id}" data-type="${d.type}" draggable="true">
+    ${dirColor(d) ? `<span class="dcol" style="background:${dirColor(d)}"></span>` : '<span class="dcol none"></span>'}
     <span class="${isF ? 'fn' : 'en'}">${d.name}</span>
     ${isF ? `<span class="cnum">${n || ''}</span>` : ''}
     ${!isF && d.path ? `<span class="ppeek">${d.path}</span>` : ''}
@@ -1387,7 +1391,7 @@ function treeRow(d, pre, last){
   const g = guides(pre, last);
   if (!isF){
     return `<div class="dn entry${selDir === d.id ? ' sel' : ''}" data-did="${d.id}" data-type="entry" draggable="true">
-      ${g}<span class="ficon file"></span>
+      ${g}${dirColor(d) ? `<span class="dcol" style="background:${dirColor(d)}"></span>` : '<span class="dcol none"></span>'}<span class="ficon file"></span>
       <span class="en">${d.name}</span>
       ${d.path ? `<span class="ppeek">${d.path}</span>` : ''}
       <button class="tr" data-del="${d.id}" title="ゴミ箱へ">${TRASH}</button></div>`;
@@ -1396,7 +1400,7 @@ function treeRow(d, pre, last){
   const list = dirChildren(d.id);
   let h = `<div class="dn folder" data-did="${d.id}" data-type="folder" data-fold="${d.id}" draggable="true">
     ${g}<span class="cvt">${open ? '▾' : '▸'}</span>
-    <span class="ficon"></span>
+    ${dirColor(d) ? `<span class="dcol" style="background:${dirColor(d)}"></span>` : '<span class="dcol none"></span>'}<span class="ficon"></span>
     <span class="fn">${d.name}</span>
     <span class="cnum">${list.length || ''}</span>
     <button class="x" data-af="${d.id}">＋フォルダ</button>
@@ -1709,6 +1713,15 @@ function drawDirDetail(){
     <div class="k">path</div>
     <input type="text" id="pathBox" class="pathbox" value="${(d.path || '').replace(/"/g,'&quot;')}" readonly>
     <div class="k">note</div><div class="dnote">${d.note || '—'}</div>
+    <div class="k">紐づけ</div>
+    <div style="display:flex;gap:6px;align-items:center;margin:3px 0 11px">
+      <select id="dlink" class="sortsel" style="flex:1">
+        <option value="">なし${dirColor(d) && !d.pid ? '（上位から継承中）' : ''}</option>
+        ${parents.map(x => `<option value="${x.id}"${d.pid===x.id?' selected':''}>${x.title}</option>`).join('')}
+      </select>
+      <span class="dcol lg" style="background:${dirColor(d) || 'transparent'};
+        ${dirColor(d) ? '' : 'border:1px dashed var(--line-2)'}"></span>
+    </div>
     <div class="k">移動先</div>
     <div style="display:flex;gap:6px;align-items:center;margin:3px 0 11px">
       <select id="dmove" class="sortsel" style="flex:1">
@@ -1723,6 +1736,8 @@ function drawDirDetail(){
 
   const de = document.getElementById('dEdit');
   if (de) de.addEventListener('click', () => { dirEdit = d.id; drawDirs(); });
+  const dl = document.getElementById('dlink');
+  if (dl) dl.addEventListener('change', e => { d.pid = e.target.value || null; drawDirs(); });
   const mg = document.getElementById('dmovego');
   if (mg) mg.addEventListener('click', () => {
     const v = document.getElementById('dmove').value;
@@ -1741,6 +1756,17 @@ function drawDirDetail(){
 }
 
 
+function dirColor(d){
+  let cur = d, guard = 0;
+  while (cur && guard++ < 30){
+    if (cur.pid){
+      const p = parents.find(x => x.id === cur.pid);
+      if (p) return p.color;
+    }
+    cur = dirs.find(x => x.id === cur.p);
+  }
+  return null;
+}
 function dirPath(d){
   const names = [];
   let cur = dirs.find(x => x.id === d.p);
