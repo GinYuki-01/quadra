@@ -392,16 +392,14 @@ function sweep(){
 function cycleCheck(){
   sweep();
   const t0 = today();
-  kids.filter(k => k.rep && k.nextAt && !k.arch).forEach(src => {
-    let k = src, guard = 0;
-    while (k.nextAt < t0 && guard++ < 400){
-      const nx = nextOccurrence(k.nextAt, k.rep);
-      const copy = Object.assign({}, k, {id:'k'+(uid++), due:nx, nextAt:nx,
-        done:false, doneAt:null, now:false, arch:false});
-      if (k.done) k.arch = true;
-      k.rep = null; k.nextAt = null;
-      kids.push(copy);
-      k = copy;
+  kids.filter(k => k.rep && k.done && k.nextAt && !k.arch).forEach(k => {
+    const nextD = atDayStart(k.nextAt);
+    const revive = new Date(nextD.getTime() - 3 * DAY);
+    const after = k.doneAt ? new Date(atDayStart(k.doneAt).getTime() + DAY) : revive;
+    const at = revive > after ? revive : after;
+    if (atDayStart(t0) >= at){
+      k.done = false; k.doneAt = null; k.now = false;
+      k.due = k.nextAt;
     }
   });
 }
@@ -573,7 +571,7 @@ function sortKids(list){
   return arr.sort((a,b) => (a.done - b.done) || by(a,b));
 }
 function reindex(){
-  parents.forEach((p,i) => p.order = i);
+  parents.slice().sort((a,b)=>(a.order||0)-(b.order||0)).forEach((p,i) => p.order = i);
   parents.forEach(p => kidsOf(p.id).sort((a,b)=>(a.order||0)-(b.order||0)).forEach((k,i) => k.order = i));
 }
 function parKey(p, fn, init, better){
@@ -597,7 +595,7 @@ function drawTasks(){
   const el = document.getElementById('taskList');
 
   if (view === 'archive'){
-    const d = kids.filter(k => k.done && k.doneAt).sort((a,b) => b.doneAt.localeCompare(a.doneAt));
+    const d = kids.filter(k => k.done && k.doneAt && !k.rep).sort((a,b) => b.doneAt.localeCompare(a.doneAt));
     el.innerHTML = d.length ? d.map(k => `<div class="arow"><span class="d">${k.doneAt.slice(5).replace('-','/')}</span>
       <span style="width:7px;height:7px;border-radius:2px;background:${colorOf(k)};flex:none"></span>
       <span class="t">${k.title}</span></div>`).join('') : '<div class="empty">完了したタスクはまだありません</div>';
@@ -631,7 +629,7 @@ function drawTasks(){
         <span class="box${k.done?' on':''}" data-tog="${k.id}"></span>
         ${k.waiting && !k.done ? `<span class="wm" style="border-color:${p.color}"></span>` : ''}
         <span class="ch-t" data-ek="${k.id}" title="クリックで編集">${k.title}</span>
-        ${k.rep && !k.done ? `<span class="rep">${repLabel(k.rep)}</span>` : ''}
+        ${k.rep ? `<span class="rep">${repLabel(k.rep)}${k.done && k.nextAt ? ' · ' + k.nextAt.slice(5).replace('-','/') + ' 前に復活' : ''}</span>` : ''}
         ${k.done ? '' : `<button class="nowbtn${k.now?' on':''}" data-now="${k.id}">now</button>`}
         <button class="tr" data-delk="${k.id}" title="削除">${TRASH}</button>
         <span class="u">${k.done ? '' : label(k)}</span></div>`;
@@ -722,6 +720,12 @@ function drawTasks(){
     e.stopPropagation();
     const k = kids.find(x => x.id === b.dataset.tog);
     k.done = !k.done; k.doneAt = k.done ? today() : null; if (k.done) k.now = false;
+    if (k.rep && k.done){
+      let nx = k.nextAt || k.due || today();
+      let guard = 0;
+      while (nx <= today() && guard++ < 400) nx = nextOccurrence(nx, k.rep);
+      k.nextAt = nx;
+    }
     render();
   }));
   el.querySelectorAll('[data-now]').forEach(b => b.addEventListener('click', e => {
@@ -894,7 +898,16 @@ function bindDrag(el){
     e.preventDefault();
     const t = dropTarget(e);
     if (t){
-      if (drag.type === 'p' && t.pid) movePar(drag.id, t.pid);
+      if (drag.type === 'p' && t.pid){
+        if (sortMode !== 'manual'){
+          const cur = sortedParents();
+          sortMode = 'manual';
+          cur.forEach((p,i) => p.order = i);
+          const sel = document.getElementById('sortSel');
+          if (sel) sel.value = 'manual';
+        }
+        movePar(drag.id, t.pid);
+      }
       if (drag.type === 'k'){
         if (t.kid){
           const target = kids.find(x => x.id === t.kid);
