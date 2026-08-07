@@ -79,6 +79,15 @@ svg.mx{display:block;width:100%;height:100%}
 #tip .b{font-size:11px;color:var(--ink-2)}
 #tip .c{font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
 
+.sdband{display:none;align-items:center;gap:10px;padding:8px 11px;border-top:1px solid var(--line-3);flex:none}
+.sdband.on{display:flex}
+.sdlab{font-size:10.5px;letter-spacing:.1em;color:var(--ink-3);white-space:nowrap;text-transform:uppercase}
+.sdlab .n{font-variant-numeric:tabular-nums}
+.sddots{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.sddot{width:9px;height:9px;border-radius:50%;cursor:pointer;opacity:.75;transition:opacity .12s,transform .12s}
+.sddot:hover{opacity:1;transform:scale(1.25)}
+.sdmark{font-size:10px;color:var(--ink-3);border:1px dashed var(--line-2);border-radius:99px;
+  padding:0 6px;white-space:nowrap;flex:none}
 .key{display:flex;gap:16px;padding:7px 11px;border-top:1px solid var(--line-3);font-size:11px;color:var(--ink-2);flex-wrap:wrap;flex:none}
 .key i{display:inline-block;width:10px;height:10px;border-radius:50%;vertical-align:-1px;margin-right:5px}
 .legend{display:grid;grid-template-columns:1fr 1fr;gap:2px 12px;padding:8px 11px;border-top:1px solid var(--line-3);flex:none;max-height:118px;overflow:auto}
@@ -155,18 +164,17 @@ svg.mx{display:block;width:100%;height:100%}
 .dirs{display:grid;grid-template-columns:minmax(250px,1fr) minmax(320px,1.4fr);margin-top:12px}
 .dtree{padding:9px 11px;border-right:1px solid var(--line-2);max-height:560px;min-height:300px;overflow:auto}
 .ddet{padding:9px 13px;overflow:auto}
-.dn{display:flex;align-items:center;gap:7px;padding:3px 6px;cursor:pointer;border-radius:4px;
+.dn{display:flex;align-items:center;gap:8px;padding:5px 8px;cursor:pointer;border-radius:4px;
   position:relative;transition:background .12s}
 .dn:hover{background:#f7f7f5}
 .dn.sel{background:#f0f0ed}
 .dn .cv{font-size:8px;color:var(--ink-3);width:10px;flex:none;transition:transform .15s}
 .dn.folder{margin-top:5px}
 .dn .fn{font-weight:500;font-size:13px;color:var(--ink);letter-spacing:.02em}
-.dn.folder::before{content:"";width:11px;height:9px;flex:none;border-radius:1.5px 2px 2px 2px;
+.dn.hidden::before{content:"";width:11px;height:9px;flex:none;border-radius:1.5px 2px 2px 2px;
   border:1.2px solid var(--ink-3);border-top-width:3px;margin-right:-1px}
 .dn.entry{position:relative}
-.dn.entry::before{content:"";position:absolute;left:-2px;top:50%;width:7px;height:1px;
-  background:var(--line-2);transform:translateY(-50%)}
+
 .dn .en{font-size:12px;color:var(--ink-2);font-family:ui-monospace,Menlo,monospace;letter-spacing:-.01em}
 .dn.sel .en{color:var(--ink);font-weight:500}
 .dn .x{font-size:10.5px;color:var(--ink-3);opacity:0;white-space:nowrap;padding:0 3px;border-radius:3px}
@@ -241,6 +249,28 @@ svg.mx{display:block;width:100%;height:100%}
 .dedit{margin-left:10px;font-size:10.5px;color:var(--ink-3);opacity:.85;font-weight:400}
 .dedit:hover{color:var(--ink)}
 .dtitle{display:flex;align-items:baseline}
+.vtog{display:flex;gap:1px}
+.vt{font-size:10.5px;color:var(--ink-3);padding:2px 8px;border-radius:99px}
+.vt.on{color:var(--ink);background:#f0f0ee}
+.cvt{font-size:8px;color:var(--ink-3);width:10px;flex:none}
+.crumbs{display:flex;align-items:center;flex-wrap:wrap;gap:5px;padding:0 2px 8px;
+  border-bottom:1px solid var(--line-3);margin-bottom:6px}
+.cr{font-size:11.5px;color:var(--ink-3);cursor:pointer;padding:1px 4px;border-radius:3px}
+.cr:hover{color:var(--ink);background:#f2f2f0}
+.cr.now{color:var(--ink);font-weight:500;cursor:default}
+.crsep{font-size:11px;color:var(--line-2)}
+.dn .cnum{font-size:10.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.dn .cv{margin-left:auto;font-size:13px;color:var(--ink-3);width:auto}
+.dn .ppeek{margin-left:auto;font-size:10.5px;color:var(--ink-3);font-family:ui-monospace,Menlo,monospace;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:52%}
+.dn.up{color:var(--ink-3)}
+.dn.up .fn{font-weight:400;font-size:12px;color:var(--ink-3)}
+.dn.up .cv{margin-left:0}
+.dn.special .fn{color:var(--ink-2)}
+.dn .tr{opacity:0;margin-left:6px}
+.dn:hover .tr{opacity:1}
+.dbar{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;padding-top:9px;border-top:1px solid var(--line-3)}
+.dbar .tbtn{margin-left:auto}
 .dform{display:flex;flex-direction:column;gap:5px;padding:5px 0 7px}
 .dform input{max-width:280px}
 .k{font-size:11px;color:var(--ink-3);letter-spacing:.06em}
@@ -327,6 +357,7 @@ svg.mx{display:block;width:100%;height:100%}
         <svg class="mx" id="mx" viewBox="0 0 480 480"></svg>
         <div id="tip"></div>
       </div>
+      <div class="sdband" id="sdBand"></div>
       <div class="key">
         <span><i style="background:#65656a"></i>自分が動くタスク</span>
         <span><i style="border:1.6px dashed #65656a"></i>相手のアクション待ち</span>
@@ -543,9 +574,11 @@ let view = 'open', hidden = new Set(), sel = null, selDir = null;
 let openAdd = null, addingParent = false, editK = null, editP = null;
 let sortMode = 'urgency';
 let openStep = null;
-let expanded = new Set(), adding = null;
+let adding = null;
 let dirSort = 'name';
-let folderFirst = true, dirEdit = null, showTrash = false;
+let folderFirst = true, dirEdit = null, cwd = null;
+let dirView = 'explorer';
+let expanded = new Set();
 
 const kidsOf = pid => kids.filter(k => k.parent === pid && !k.arch);
 const parOf = k => parents.find(p => p.id === k.parent);
@@ -569,6 +602,7 @@ function urgency(k){
 }
 function urgencyBack(k, d){ const s = offset; offset -= d; const v = urgency(k); offset = s; return v; }
 function label(k){
+  if (k.someday) return '時間があるとき';
   const R = daysLeft(k);
   if (R === null){
     const e = Math.floor(Math.max(0, elapsed(k)));
@@ -583,7 +617,7 @@ function stepLabel(st){
   const e = Math.floor((now() - atDayStart(st.since)) / DAY);
   return e < 1 ? '本日' : e + '日経過';
 }
-const active = () => kids.filter(k => !k.done && !k.arch && !hidden.has(k.parent));
+const active = () => kids.filter(k => !k.done && !k.arch && !k.someday && !hidden.has(k.parent));
 
 const M = {x0:54, x1:450, y0:30, y1:426};
 const px = u => M.x0 + u / 100 * (M.x1 - M.x0);
@@ -697,6 +731,25 @@ function drawLegend(){
   }));
 }
 
+function drawSomeday(){
+  const el = document.getElementById('sdBand');
+  const l = kids.filter(k => k.someday && !k.done && !k.arch && !hidden.has(k.parent));
+  if (!l.length){ el.innerHTML = ''; el.classList.remove('on'); return; }
+  el.classList.add('on');
+  el.innerHTML = `<span class="sdlab">時間があるとき <span class="n">${l.length}</span></span>
+    <span class="sddots">${l.map(k => {
+      const p = parOf(k);
+      return `<span class="sddot" data-sd="${k.id}" style="background:${p.color}"
+        title="${k.title} — ${p.title}"></span>`;
+    }).join('')}</span>`;
+  el.querySelectorAll('[data-sd]').forEach(n => n.addEventListener('click', () => {
+    sel = sel === n.dataset.sd ? null : n.dataset.sd;
+    drawTasks();
+    const row = document.querySelector('.ch.sel');
+    if (row) row.scrollIntoView({block:'nearest', behavior:'smooth'});
+  }));
+}
+
 function drawNow(){
   const l = kids.filter(k => k.now && !k.done);
   document.getElementById('nowCount').textContent = l.length || '';
@@ -716,7 +769,7 @@ function sortKids(list){
     imp:(a,b)=>b.imp-a.imp,
     manual:(a,b)=>(a.order||0)-(b.order||0)
   }[sortMode] || ((a,b)=>urgency(b)-urgency(a));
-  return arr.sort((a,b) => (a.done - b.done) || by(a,b));
+  return arr.sort((a,b) => (a.done - b.done) || ((a.someday?1:0) - (b.someday?1:0)) || by(a,b));
 }
 function reindex(){
   parents.slice().sort((a,b)=>(a.order||0)-(b.order||0)).forEach((p,i) => p.order = i);
@@ -780,6 +833,7 @@ function drawTasks(){
         <span class="ch-t" data-step="${k.id}" title="クリックで経過を追記">${k.title}</span>
         ${(k.steps||[]).filter(x=>!x.done).length ? `<span class="stepn">${(k.steps||[]).filter(x=>!x.done).length}</span>` : ''}
         <button class="editbtn" data-ek="${k.id}">編集</button>
+        ${k.someday && !k.done ? '<span class="sdmark">いつか</span>' : ''}
         ${k.rep ? `<span class="rep">${repLabel(k.rep)}${k.done && k.nextAt ? ' · ' + k.nextAt.slice(5).replace('-','/') + ' 前に復活' : ''}</span>` : ''}
         ${k.done ? '' : `<button class="nowbtn${k.now?' on':''}" data-now="${k.id}">now</button>`}
         <button class="tr" data-delk="${k.id}" title="削除">${TRASH}</button>
@@ -807,6 +861,7 @@ function drawTasks(){
           <span class="lab">締切</span><input type="date" id="ekd" value="${k.due || ''}">
           <span class="sl"><span class="lab">重要</span><input type="range" id="ekm" min="1" max="10" value="${k.imp}"><b id="ekmv">${k.imp}</b></span>
           <label class="cb"><input type="checkbox" id="ekw"${k.waiting?' checked':''}> 相手待ち</label>
+          <label class="cb"><input type="checkbox" id="eksd"${k.someday?' checked':''}> 時間があるとき</label>
           <span class="lab">ルーチン</span>
           <select id="rf">
             <option value="">なし</option>
@@ -833,6 +888,7 @@ function drawTasks(){
         <span class="lab">締切</span><input type="date" id="nd">
         <span class="sl"><span class="lab">重要</span><input type="range" id="nm" min="1" max="10" value="5"><b id="nmv">5</b></span>
         <label class="cb"><input type="checkbox" id="nw"> 相手待ち</label>
+        <label class="cb"><input type="checkbox" id="nsd"> 時間があるとき</label>
         <span class="lab">ルーチン</span>
         <select id="nrf">
           <option value="">なし</option>
@@ -995,6 +1051,7 @@ function drawTasks(){
       if (w && !k.waiting) k.since = today();
       if (!w) k.since = null;
       k.waiting = w;
+      k.someday = document.getElementById('eksd').checked;
       const np = document.getElementById('ekp').value;
       if (np !== k.parent){ k.parent = np; k.order = 9999; }
       const f = document.getElementById('rf').value;
@@ -1076,6 +1133,7 @@ function drawTasks(){
       }
       kids.push({id:'k'+(uid++), parent:openAdd, title:t, imp:+document.getElementById('nm').value,
         due, recv: document.getElementById('nr').value || today(),
+        someday: document.getElementById('nsd').checked,
         waiting:w, since:w ? today() : null,
         done:false, doneAt:null, now:false, arch:false, rep, nextAt,
         order: kidsOf(openAdd).length});
@@ -1256,30 +1314,24 @@ function descendants(id){
   return out;
 }
 
-function dirRow(d, depth){
-  const pad = 6 + depth * 15;
-  if (d.type === 'folder'){
-    const open = expanded.has(d.id);
-    let h = `<div class="dn folder" data-fold="${d.id}" data-did="${d.id}" draggable="true" style="padding-left:${pad}px">
-      <span class="cv">${open ? '▾' : '▸'}</span>
-      <span class="fn">${d.name}</span>
-      <button class="x" data-af="${d.id}">＋フォルダ</button>
-      <button class="x" data-ae="${d.id}">＋パス</button>
-      <button class="tr" data-del="${d.id}" title="削除">${TRASH}</button></div>`;
-    if (open){
-      dirChildren(d.id).forEach(c => h += dirRow(c, depth + 1));
-      if (adding && adding.parent === d.id) h += dirForm(depth + 1);
-    }
-    return h;
-  }
-  return `<div class="dn entry${selDir === d.id ? ' sel' : ''}" data-id="${d.id}" data-did="${d.id}" draggable="true" style="padding-left:${pad + 15}px">
-    <span class="en">${d.name}</span>
-    <button class="tr" data-del="${d.id}" title="削除">${TRASH}</button></div>`;
+const TRASH_VIEW = '__trash';
+
+function dirRow(d){
+  const isF = d.type === 'folder';
+  const n = isF ? dirChildren(d.id).length : 0;
+  return `<div class="dn ${isF ? 'folder' : 'entry'}${selDir === d.id ? ' sel' : ''}"
+      data-did="${d.id}" data-type="${d.type}" draggable="true">
+    <span class="${isF ? 'fn' : 'en'}">${d.name}</span>
+    ${isF ? `<span class="cnum">${n || ''}</span>` : ''}
+    ${!isF && d.path ? `<span class="ppeek">${d.path}</span>` : ''}
+    <button class="tr" data-del="${d.id}" title="ゴミ箱へ">${TRASH}</button>
+    ${isF ? '<span class="cv">›</span>' : ''}
+  </div>`;
 }
 
 function dirForm(depth){
   const isF = adding.type === 'folder';
-  return `<div class="dform" style="margin-left:${6 + depth * 15}px">
+  return `<div class="dform" style="margin-left:${6 + (depth || 0) * 15}px">
     <input type="text" id="dnm" placeholder="${isF ? 'フォルダ名' : '表示名'}" autocomplete="off">
     ${isF ? '' : `<input type="text" id="dpt" placeholder="パス" autocomplete="off">
     <input type="text" id="dnt" placeholder="メモ" autocomplete="off">`}
@@ -1288,55 +1340,164 @@ function dirForm(depth){
       <button class="btn sm" id="dcancel">やめる</button></div></div>`;
 }
 
+function treeRow(d, depth){
+  const pad = 6 + depth * 15;
+  const isF = d.type === 'folder';
+  if (!isF){
+    return `<div class="dn entry${selDir === d.id ? ' sel' : ''}" data-did="${d.id}" data-type="entry"
+      draggable="true" style="padding-left:${pad + 16}px">
+      <span class="en">${d.name}</span>
+      <button class="tr" data-del="${d.id}" title="ゴミ箱へ">${TRASH}</button></div>`;
+  }
+  const open = expanded.has(d.id);
+  let h = `<div class="dn folder" data-did="${d.id}" data-type="folder" data-fold="${d.id}"
+    draggable="true" style="padding-left:${pad}px">
+    <span class="cvt">${open ? '▾' : '▸'}</span>
+    <span class="fn">${d.name}</span>
+    <span class="cnum">${dirChildren(d.id).length || ''}</span>
+    <button class="tr" data-del="${d.id}" title="ゴミ箱へ">${TRASH}</button></div>`;
+  if (open){
+    h += dirChildren(d.id).map(c => treeRow(c, depth + 1)).join('');
+    if (adding && adding.parent === d.id) h += dirForm(depth + 1);
+  }
+  return h;
+}
+
+function crumbs(){
+  const parts = [];
+  let cur = cwd;
+  while (cur && cur !== INBOX && cur !== TRASH_VIEW){
+    const d = dirs.find(x => x.id === cur);
+    if (!d) break;
+    parts.unshift({id:d.id, name:d.name});
+    cur = d.p;
+  }
+  let h = `<span class="cr${cwd===null?' now':''}" data-cd="">ルート</span>`;
+  if (cwd === INBOX) h += `<span class="crsep">/</span><span class="cr now" data-cd="${INBOX}">未整理</span>`;
+  else if (cwd === TRASH_VIEW) h += `<span class="crsep">/</span><span class="cr now" data-cd="${TRASH_VIEW}">ゴミ箱</span>`;
+  else parts.forEach((x,i) => {
+    h += `<span class="crsep">/</span><span class="cr${i===parts.length-1?' now':''}" data-cd="${x.id}">${x.name}</span>`;
+  });
+  return h;
+}
+
 function drawDirs(){
   scheduleSave();
   purgeTrash();
   const tree = document.getElementById('dtree');
-  let h = `<div class="ph dph" style="border:none;padding:0 0 6px">
+  const inTrash = cwd === TRASH_VIEW;
+
+  let h = `<div class="ph dph" style="border:none;padding:0 0 7px">
     <span class="pt">directories</span>
+    <div class="vtog">
+      <button class="vt${dirView==='explorer'?' on':''}" data-view="explorer">階層移動</button>
+      <button class="vt${dirView==='tree'?' on':''}" data-view="tree">ツリー</button>
+    </div>
     <label class="cb ff"><input type="checkbox" id="ffChk"${folderFirst?' checked':''}> フォルダを上に</label>
     <select id="dirSort" class="sortsel">
       <option value="name"${dirSort==='name'?' selected':''}>名前順</option>
       <option value="manual"${dirSort==='manual'?' selected':''}>手動</option>
-    </select>
-    <button class="x tbtn" id="trashBtn">ゴミ箱 ${trashed().length || ''}</button></div>`;
-  if (!dirs.length && !adding) h += '<div class="hint">フォルダで分類しつつ、よく使うパスを登録しておく</div>';
-  const inbox = dirs.filter(d => d.p === INBOX);
-  h += `<div class="inbox-h">INBOX <span class="n">${inbox.length}</span>
-    <button class="x" id="quickNew">＋ とりあえず登録</button></div>`;
-  if (adding && adding.parent === INBOX) h += dirForm(0);
-  if (inbox.length) h += inbox.map(d => dirRow(d, 0)).join('');
-  else if (!(adding && adding.parent === INBOX)) h += '<div class="hint">パスと名前だけ入れて後で整理</div>';
-  h += '<div class="inbox-sep"></div>';
-  dirChildren(null).forEach(d => h += dirRow(d, 0));
-  if (adding && adding.parent === null) h += dirForm(0);
-  h += `<div style="display:flex;gap:6px;margin-top:7px">
-    <button class="btn sm" data-new="folder">＋ フォルダ</button>
-    <button class="btn sm" data-new="entry">＋ パス</button></div>`;
-  if (showTrash){
+    </select></div>`;
+
+  if (dirView === 'tree' && !inTrash){
+    const inbox = dirs.filter(d => d.p === INBOX && !d.deletedAt);
+    h += `<div class="inbox-h">INBOX <span class="n">${inbox.length}</span>
+      <button class="x" id="quickNew">＋ とりあえず登録</button></div>`;
+    if (adding && adding.parent === INBOX) h += dirForm(0);
+    h += inbox.length ? inbox.map(d => treeRow(d, 0)).join('')
+       : (adding && adding.parent === INBOX ? '' : '<div class="hint">パスと名前だけ入れて後で整理</div>');
+    h += '<div class="inbox-sep"></div>';
+    const roots = dirChildren(null);
+    h += roots.map(d => treeRow(d, 0)).join('');
+    if (adding && adding.parent === null) h += dirForm(0);
+    if (!roots.length && !(adding && adding.parent === null)) h += '<div class="hint">フォルダかパスを追加</div>';
+    h += `<div class="dbar">
+      <button class="btn sm" data-new="folder">＋ フォルダ</button>
+      <button class="btn sm" data-new="entry">＋ パス</button>
+      <button class="btn sm tbtn" data-cd="${TRASH_VIEW}">ゴミ箱 ${trashed().length || ''}</button>
+    </div>`;
+    tree.innerHTML = h;
+    bindDirs(tree);
+    drawDirDetail();
+    return;
+  }
+
+  h += `<div class="crumbs">${crumbs()}</div>`;
+
+  if (inTrash){
     const tl = trashed();
-    h += `<div class="inbox-sep"></div><div class="inbox-h">TRASH <span class="n">${tl.length}</span></div>`;
     h += tl.length ? tl.map(d => `<div class="dn trashrow">
       <span class="${d.type === 'folder' ? 'fn' : 'en'}">${d.name}</span>
       <span class="tleft">あと${trashDays(d)}日</span>
       <button class="x" data-restore="${d.id}">戻す</button>
       <button class="x" data-purge="${d.id}">完全削除</button></div>`).join('')
       : '<div class="hint">ゴミ箱は空</div>';
+    h += `<div class="dbar"><button class="btn sm" data-cd="">ルートへ戻る</button></div>`;
+    tree.innerHTML = h;
+    bindDirs(tree);
+    drawDirDetail();
+    return;
   }
-  tree.innerHTML = h;
 
+  if (cwd !== null){
+    const parent = cwd === INBOX ? '' : (dirs.find(x => x.id === cwd) || {}).p || '';
+    h += `<div class="dn up" data-cd="${parent}"><span class="cv">‹</span><span class="fn">上へ</span></div>`;
+  }
+
+  if (cwd === null){
+    const inbox = dirs.filter(d => d.p === INBOX && !d.deletedAt);
+    h += `<div class="dn folder special" data-cd="${INBOX}">
+      <span class="fn">未整理</span><span class="cnum">${inbox.length || ''}</span><span class="cv">›</span></div>`;
+  }
+
+  const list = dirChildren(cwd);
+  h += list.map(dirRow).join('');
+  if (adding && adding.parent === cwd) h += dirForm();
+  if (!list.length && !(adding && adding.parent === cwd))
+    h += `<div class="hint">${cwd === INBOX ? 'とりあえず登録したものがここに入る' : 'フォルダかパスを追加'}</div>`;
+
+  h += `<div class="dbar">
+    <button class="btn sm" data-new="folder">＋ フォルダ</button>
+    <button class="btn sm" data-new="entry">＋ パス</button>
+    ${cwd === null ? '<button class="btn sm" id="quickNew">＋ とりあえず登録</button>' : ''}
+    <button class="btn sm tbtn" data-cd="${TRASH_VIEW}">ゴミ箱 ${trashed().length || ''}</button>
+  </div>`;
+
+  tree.innerHTML = h;
+  bindDirs(tree);
+  drawDirDetail();
+}
+
+function bindDirs(tree){
+  tree.querySelectorAll('[data-cd]').forEach(n => n.addEventListener('click', e => {
+    if (e.target.closest('button.tr')) return;
+    const v = n.dataset.cd;
+    cwd = v === '' ? null : v;
+    selDir = null; adding = null; drawDirs();
+  }));
   tree.querySelectorAll('.dn.entry').forEach(n => n.addEventListener('click', e => {
     if (e.target.closest('button')) return;
-    selDir = n.dataset.id; drawDirs();
+    selDir = n.dataset.did; drawDirs();
   }));
-  tree.querySelectorAll('.dn.folder').forEach(n => n.addEventListener('click', e => {
+  tree.querySelectorAll('.dn.folder[data-did]').forEach(n => n.addEventListener('dblclick', () => {
+    cwd = n.dataset.did; selDir = null; drawDirs();
+  }));
+  tree.querySelectorAll('.dn.folder[data-did] .cv').forEach(n => n.addEventListener('click', e => {
+    e.stopPropagation();
+    cwd = n.closest('.dn').dataset.did; selDir = null; drawDirs();
+  }));
+
+  tree.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => {
+    dirView = b.dataset.view;
+    if (dirView === 'explorer') cwd = null;
+    adding = null; drawDirs();
+  }));
+  tree.querySelectorAll('[data-fold]').forEach(n => n.addEventListener('click', e => {
     if (e.target.closest('button')) return;
-    const id = n.dataset.fold;
-    const open = expanded.has(id);
+    const id = n.dataset.fold, open = expanded.has(id);
     if (e.altKey){
       const ids = [id, ...descendants(id).filter(x => x.type === 'folder').map(x => x.id)];
-      if (open) ids.forEach(x => expanded.delete(x));
-      else ids.forEach(x => expanded.add(x));
+      ids.forEach(x => open ? expanded.delete(x) : expanded.add(x));
     } else {
       open ? expanded.delete(id) : expanded.add(id);
     }
@@ -1345,103 +1506,43 @@ function drawDirs(){
 
   const ff = document.getElementById('ffChk');
   if (ff) ff.addEventListener('change', e => { folderFirst = e.target.checked; drawDirs(); });
-  const tb = document.getElementById('trashBtn');
-  if (tb) tb.addEventListener('click', () => { showTrash = !showTrash; drawDirs(); });
+  const ds = document.getElementById('dirSort');
+  if (ds) ds.addEventListener('change', e => {
+    if (e.target.value === 'manual') dirReindex();
+    dirSort = e.target.value; drawDirs();
+  });
+
+  tree.querySelectorAll('[data-new]').forEach(b => b.addEventListener('click', () => {
+    adding = {parent: dirView === 'tree' ? null : cwd, type:b.dataset.new};
+    drawDirs(); const i = document.getElementById('dnm'); if (i) i.focus();
+  }));
+  const qn = document.getElementById('quickNew');
+  if (qn) qn.addEventListener('click', () => {
+    cwd = INBOX; adding = {parent:INBOX, type:'entry'};
+    drawDirs(); const i = document.getElementById('dnm'); if (i) i.focus();
+  });
+
+  tree.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    const id = b.dataset.del, d = dirs.find(x => x.id === id);
+    const sub = descendants(id);
+    const msg = sub.length ? `「${d.name}」を中身${sub.length}件ごとゴミ箱に入れる` : `「${d.name}」をゴミ箱に入れる`;
+    if (!confirm(msg + '\n30日後に自動で消える')) return;
+    const stamp = today();
+    d.deletedAt = stamp; d.delVia = null;
+    sub.forEach(x => { x.deletedAt = stamp; x.delVia = id; });
+    if (selDir === id || sub.some(x => x.id === selDir)) selDir = null;
+    drawDirs();
+  }));
   tree.querySelectorAll('[data-restore]').forEach(b => b.addEventListener('click', () => {
     const id = b.dataset.restore;
     dirs.forEach(x => { if (x.id === id || x.delVia === id){ x.deletedAt = null; x.delVia = null; } });
     drawDirs();
   }));
   tree.querySelectorAll('[data-purge]').forEach(b => b.addEventListener('click', () => {
-    const id = b.dataset.purge;
     if (!confirm('完全に削除する。元に戻せない')) return;
+    const id = b.dataset.purge;
     dirs = dirs.filter(x => x.id !== id && x.delVia !== id);
-    drawDirs();
-  }));
-
-  const sortSelD = document.getElementById('dirSort');
-  if (sortSelD) sortSelD.addEventListener('change', e => {
-    if (e.target.value === 'manual') dirReindex();
-    dirSort = e.target.value;
-    drawDirs();
-  });
-
-  tree.querySelectorAll('[data-did]').forEach(n => n.addEventListener('dragstart', e => {
-    dirDrag = n.dataset.did;
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', n.dataset.did);
-    e.stopPropagation();
-  }));
-  tree.addEventListener('dragover', e => {
-    if (!dirDrag) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    clearDirMark(tree);
-    const t = dirDropTarget(e);
-    if (t) t.classList.add('drop-' + dirDropMode(t, e));
-  });
-  tree.addEventListener('drop', e => {
-    if (!dirDrag) return;
-    e.preventDefault();
-    const t = dirDropTarget(e);
-    if (t){
-      const src = dirs.find(x => x.id === dirDrag);
-      const tgt = dirs.find(x => x.id === t.dataset.did);
-      const ok = src && tgt && src.id !== tgt.id && !descendants(src.id).some(x => x.id === tgt.id);
-      if (ok){
-        const mode = dirDropMode(t, e);
-        if (dirSort !== 'manual'){ dirReindex(); dirSort = 'manual';
-          const ds = document.getElementById('dirSort'); if (ds) ds.value = 'manual'; }
-        if (mode === 'into'){
-          src.p = tgt.id; expanded.add(tgt.id);
-          const arr = dirChildren(tgt.id).filter(x => x.id !== src.id);
-          arr.push(src);
-          arr.forEach((x,i) => x.order = i);
-        } else {
-          src.p = tgt.p;
-          const arr = dirChildren(tgt.p).filter(x => x.id !== src.id);
-          let at = arr.findIndex(x => x.id === tgt.id);
-          if (at < 0) at = arr.length;
-          arr.splice(mode === 'after' ? at + 1 : at, 0, src);
-          arr.forEach((x,i) => x.order = i);
-        }
-        dirReindex();
-      }
-    }
-    dirDrag = null;
-    clearDirMark(tree);
-    drawDirs();
-  });
-  tree.addEventListener('dragend', () => { dirDrag = null; clearDirMark(tree); });
-  tree.querySelectorAll('[data-af],[data-ae]').forEach(b => b.addEventListener('click', e => {
-    e.stopPropagation();
-    const id = b.dataset.af || b.dataset.ae;
-    expanded.add(id);
-    adding = {parent:id, type: b.dataset.af ? 'folder' : 'entry'};
-    drawDirs(); document.getElementById('dnm').focus();
-  }));
-  tree.querySelectorAll('[data-new]').forEach(b => b.addEventListener('click', () => {
-    adding = {parent:null, type:b.dataset.new};
-    drawDirs(); document.getElementById('dnm').focus();
-  }));
-  const qn = document.getElementById('quickNew');
-  if (qn) qn.addEventListener('click', () => {
-    adding = {parent:INBOX, type:'entry'};
-    drawDirs();
-    const i = document.getElementById('dnm'); if (i) i.focus();
-  });
-  tree.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', e => {
-    e.stopPropagation();
-    const id = b.dataset.del, d = dirs.find(x => x.id === id);
-    const kids2 = descendants(id);
-    const msg = kids2.length
-      ? `「${d.name}」を中身${kids2.length}件ごとゴミ箱に入れる`
-      : `「${d.name}」をゴミ箱に入れる`;
-    if (!confirm(msg + '\n30日後に自動で消える')) return;
-    const stamp = today();
-    d.deletedAt = stamp; d.delVia = null;
-    kids2.forEach(x => { x.deletedAt = stamp; x.delVia = id; });
-    if (selDir === id || kids2.some(x => x.id === selDir)) selDir = null;
     drawDirs();
   }));
 
@@ -1453,8 +1554,9 @@ function drawDirs(){
       const id = 'd' + (uid++);
       dirs.push({id, p:adding.parent, type:adding.type, name:n,
         path: adding.type === 'entry' ? document.getElementById('dpt').value.trim() : '',
-        note: adding.type === 'entry' ? document.getElementById('dnt').value.trim() : ''});
-      if (adding.type === 'entry') selDir = id; else expanded.add(id);
+        note: adding.type === 'entry' ? document.getElementById('dnt').value.trim() : '',
+        order: dirChildren(adding.parent).length, deletedAt:null, delVia:null});
+      if (adding.type === 'entry') selDir = id;
       adding = null; drawDirs();
     };
     da.addEventListener('click', go);
@@ -1466,9 +1568,59 @@ function drawDirs(){
       }); });
   }
 
+  tree.querySelectorAll('[data-did][draggable]').forEach(n => n.addEventListener('dragstart', e => {
+    dirDrag = n.dataset.did;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', n.dataset.did);
+  }));
+  tree.addEventListener('dragover', e => {
+    if (!dirDrag) return;
+    e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+    clearDirMark(tree);
+    const t = dirDropTarget(e);
+    if (t) t.classList.add('drop-' + dirDropMode(t, e));
+  });
+  tree.addEventListener('drop', e => {
+    if (!dirDrag) return;
+    e.preventDefault();
+    const t = dirDropTarget(e);
+    const src = dirs.find(x => x.id === dirDrag);
+    if (t && src){
+      if (t.dataset.cd !== undefined && !t.dataset.did){
+        const dest = t.dataset.cd === '' ? null : t.dataset.cd;
+        if (dest !== src.id && !descendants(src.id).some(x => x.id === dest)) src.p = dest;
+      } else {
+        const tgt = dirs.find(x => x.id === t.dataset.did);
+        if (tgt && tgt.id !== src.id && !descendants(src.id).some(x => x.id === tgt.id)){
+          const mode = dirDropMode(t, e);
+          if (dirSort !== 'manual') { dirReindex(); dirSort = 'manual'; }
+          if (mode === 'into'){
+            src.p = tgt.id; expanded.add(tgt.id);
+            dirChildren(tgt.id).filter(x => x.id !== src.id).concat([src]).forEach((x,i) => x.order = i);
+          } else {
+            src.p = tgt.p;
+            const arr = dirChildren(tgt.p).filter(x => x.id !== src.id);
+            let at = arr.findIndex(x => x.id === tgt.id);
+            if (at < 0) at = arr.length;
+            arr.splice(mode === 'after' ? at + 1 : at, 0, src);
+            arr.forEach((x,i) => x.order = i);
+          }
+        }
+      }
+      dirReindex();
+    }
+    dirDrag = null; clearDirMark(tree); drawDirs();
+  });
+  tree.addEventListener('dragend', () => { dirDrag = null; clearDirMark(tree); });
+}
+
+function drawDirDetail(){
+  const box = document.getElementById('ddet');
   const d = dirs.find(x => x.id === selDir && !x.deletedAt);
-  if (d && dirEdit === d.id){
-    document.getElementById('ddet').innerHTML = `
+  if (!d){ box.innerHTML = '<div class="empty">登録したパスを選ぶと詳細が出る</div>'; return; }
+
+  if (dirEdit === d.id){
+    box.innerHTML = `
       <div class="crumb">${dirPath(d)}</div>
       <div class="dtitle">編集</div>
       <div class="k">name</div><input type="text" id="edn" class="pathbox" value="${(d.name||'').replace(/"/g,'&quot;')}">
@@ -1481,8 +1633,7 @@ function drawDirs(){
       const n = document.getElementById('edn').value.trim();
       if (!n) return document.getElementById('edn').focus();
       d.name = n;
-      const pv = document.getElementById('edp');
-      if (pv) d.path = pv.value.trim();
+      const pv = document.getElementById('edp'); if (pv) d.path = pv.value.trim();
       d.note = document.getElementById('edt').value.trim();
       dirEdit = null; drawDirs();
     };
@@ -1496,7 +1647,8 @@ function drawDirs(){
     document.getElementById('edn').focus();
     return;
   }
-  document.getElementById('ddet').innerHTML = d ? `
+
+  box.innerHTML = `
     <div class="crumb">${dirPath(d)}</div>
     <div class="dtitle">${d.name}<button class="x dedit" id="dEdit">編集</button></div>
     <div class="k">path</div>
@@ -1506,25 +1658,24 @@ function drawDirs(){
     <div style="display:flex;gap:6px;align-items:center;margin:3px 0 11px">
       <select id="dmove" class="sortsel" style="flex:1">
         <option value="${INBOX}"${d.p===INBOX?' selected':''}>未整理</option>
-        <option value="">ルート</option>
-        ${dirs.filter(x => x.type==='folder').map(f =>
+        <option value=""${d.p===null?' selected':''}>ルート</option>
+        ${dirs.filter(x => x.type==='folder' && !x.deletedAt).map(f =>
           `<option value="${f.id}"${d.p===f.id?' selected':''}>${dirPath(f)==='ルート'?'':dirPath(f)+' / '}${f.name}</option>`).join('')}
       </select>
       <button class="btn sm" id="dmovego">移動</button>
     </div>
-    ${d.path ? '<button class="btn" id="cp">パスをコピー</button>' : ''}`
-    : '<div class="empty">登録したパスを選ぶと詳細が出る</div>';
-  const pb = document.getElementById('pathBox');
-  if (pb) pb.addEventListener('focus', () => pb.select());
+    ${d.path ? '<button class="btn" id="cp">パスをコピー</button>' : ''}`;
+
   const de = document.getElementById('dEdit');
   if (de) de.addEventListener('click', () => { dirEdit = d.id; drawDirs(); });
   const mg = document.getElementById('dmovego');
   if (mg) mg.addEventListener('click', () => {
     const v = document.getElementById('dmove').value;
     d.p = v === '' ? null : v;
-    if (d.p && d.p !== INBOX) expanded.add(d.p);
     drawDirs();
   });
+  const pb = document.getElementById('pathBox');
+  if (pb) pb.addEventListener('focus', () => pb.select());
   const cp = document.getElementById('cp');
   if (cp) cp.addEventListener('click', async () => {
     const ok = await copyText(d.path);
@@ -1533,6 +1684,7 @@ function drawDirs(){
     setTimeout(() => cp.textContent = 'パスをコピー', 1800);
   });
 }
+
 
 function dirPath(d){
   const names = [];
@@ -1552,7 +1704,7 @@ function fitHeights(){
   const h = Math.max(520, Math.min(window.innerHeight - 110, 780));
   top.style.height = h + 'px';
 }
-function render(){ cycleCheck(); scheduleSave(); drawClock(); drawLegend(); drawMatrix(); drawNow(); drawTasks(); drawWait(); }
+function render(){ cycleCheck(); scheduleSave(); drawClock(); drawLegend(); drawMatrix(); drawSomeday(); drawNow(); drawTasks(); drawWait(); }
 
 document.getElementById('sortSel').addEventListener('change', e => {
   sortMode = e.target.value;
@@ -1594,7 +1746,7 @@ async function idbGet(){
   }catch(e){ return null; }
 }
 
-function snapshot(){ lastSavedAt = Date.now(); return {v:1, savedAt:lastSavedAt, uid, parents, kids, dirs, sortMode, dirSort, expanded:[...expanded]}; }
+function snapshot(){ lastSavedAt = Date.now(); return {v:1, savedAt:lastSavedAt, uid, parents, kids, dirs, sortMode, dirSort, dirView, expanded:[...expanded]}; }
 function restore(d){
   if (!d) return false;
   parents = d.parents || []; kids = d.kids || []; dirs = d.dirs || [];
@@ -1602,6 +1754,7 @@ function restore(d){
   uid = d.uid || 1;
   if (d.sortMode) sortMode = d.sortMode;
   if (d.dirSort) dirSort = d.dirSort;
+  if (d.dirView) dirView = d.dirView;
   if (Array.isArray(d.expanded)) expanded = new Set(d.expanded);
   const ss = document.getElementById('sortSel'); if (ss) ss.value = sortMode;
   const ds = document.getElementById('dirSort'); if (ds) ds.value = dirSort;
