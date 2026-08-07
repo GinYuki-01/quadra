@@ -153,8 +153,8 @@ svg.mx{display:block;width:100%;height:100%}
 .arow .t{font-size:12px;color:var(--ink-2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 .dirs{display:grid;grid-template-columns:minmax(250px,1fr) minmax(320px,1.4fr);margin-top:12px}
-.dtree{padding:9px 11px;border-right:1px solid var(--line-2);max-height:340px;overflow:auto}
-.ddet{padding:9px 13px}
+.dtree{padding:9px 11px;border-right:1px solid var(--line-2);max-height:560px;min-height:300px;overflow:auto}
+.ddet{padding:9px 13px;overflow:auto}
 .dn{display:flex;align-items:center;gap:6px;padding:2.5px 0;cursor:pointer}
 .dn:hover{color:#000}
 .dn.sel{background:#f4f4f2;border-radius:3px}
@@ -175,6 +175,7 @@ svg.mx{display:block;width:100%;height:100%}
 .grip:active{cursor:grabbing}
 .grip.sm{font-size:10px}
 .par-h:hover .grip,.ch:hover .grip{opacity:1}
+.par-h:hover .editbtn{opacity:1}
 .par-h[draggable],.ch[draggable]{cursor:default}
 .drop{box-shadow:inset 0 2px 0 -1px var(--ink)}
 .st{display:flex;align-items:center;gap:7px;padding:1.5px 0 1.5px 34px}
@@ -200,6 +201,12 @@ svg.mx{display:block;width:100%;height:100%}
 .repbar select{border:1px solid var(--line-2);border-radius:var(--r);padding:3px 6px;background:#fff}
 .pathbox{width:100%;border:1px solid var(--line-2);border-radius:var(--r);padding:5px 8px;
   font-family:ui-monospace,Menlo,monospace;font-size:11.5px;margin:2px 0 9px;background:#fafafa}
+.inbox-h{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.08em;
+  color:var(--ink-2);padding:0 0 4px}
+.inbox-h .n{font-size:10.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.inbox-h .x{margin-left:auto;font-size:10.5px;color:var(--ink-3);opacity:1}
+.inbox-h .x:hover{color:var(--ink)}
+.inbox-sep{border-top:1px solid var(--line-2);margin:9px 0}
 .dform{display:flex;flex-direction:column;gap:5px;padding:5px 0 7px}
 .dform input{max-width:280px}
 .k{font-size:11px;color:var(--ink-3);letter-spacing:.06em}
@@ -218,6 +225,8 @@ svg.mx{display:block;width:100%;height:100%}
   border-bottom:1px solid var(--line-3);padding:10px 0;margin-bottom:4px}
 .lg-sum .r{display:flex;justify-content:space-between}
 .lg-sum .r b{font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums}
+.lg-sum .r.warn b{color:#9a5252}
+.lg-sum .r.warn span{color:#9a5252}
 .lg-btn{width:100%;margin-top:16px;border:1px solid var(--line);border-radius:var(--r);
   padding:8px;font-size:12.5px;letter-spacing:.06em;transition:background .18s,color .18s}
 .lg-btn:hover{background:var(--ink);color:#fff}
@@ -372,10 +381,78 @@ function repLabel(r){
   if (r.freq === 'daily')   return '毎日';
   if (r.freq === 'weekly')  return '毎週 ' + WD[r.wd];
   if (r.freq === 'monthly') return '毎月 ' + r.dm + '日';
+  if (r.freq === 'bizday')  return r.n === -1 ? '毎月 最終営業日' : '毎月 第' + r.n + '営業日';
   return `毎年 ${r.mo}/${r.dm}`;
+}
+
+const HOLIDAY_CHECKED_UNTIL = 2028;
+const holCache = {};
+
+function equinoxDay(y, spring){
+  const base = spring ? 20.8431 : 23.2488;
+  return Math.floor(base + 0.242194 * (y - 1980) - Math.floor((y - 1980) / 4));
+}
+function happyMonday(y, m, nth){
+  const d = new Date(y, m - 1, 1, 12);
+  d.setDate(1 + ((8 - d.getDay()) % 7) + 7 * (nth - 1));
+  return d;
+}
+function holidays(y){
+  if (holCache[y]) return holCache[y];
+  const h = {};
+  const put = (d, n) => { h[iso(d)] = n; };
+  const D = (m, day) => new Date(y, m - 1, day, 12);
+  put(D(1,1), '元日');
+  put(happyMonday(y,1,2), '成人の日');
+  put(D(2,11), '建国記念の日');
+  put(D(2,23), '天皇誕生日');
+  put(D(3, equinoxDay(y, true)), '春分の日');
+  put(D(4,29), '昭和の日');
+  put(D(5,3), '憲法記念日');
+  put(D(5,4), 'みどりの日');
+  put(D(5,5), 'こどもの日');
+  put(happyMonday(y,7,3), '海の日');
+  put(D(8,11), '山の日');
+  put(happyMonday(y,9,3), '敬老の日');
+  put(D(9, equinoxDay(y, false)), '秋分の日');
+  put(happyMonday(y,10,2), 'スポーツの日');
+  put(D(11,3), '文化の日');
+  put(D(11,23), '勤労感謝の日');
+  Object.keys(h).slice().sort().forEach(k => {
+    const d = new Date(k + 'T12:00:00');
+    const mid = new Date(d.getTime() + DAY), nx = new Date(d.getTime() + 2 * DAY);
+    if (h[iso(nx)] && !h[iso(mid)] && mid.getDay() !== 0) h[iso(mid)] = '国民の休日';
+  });
+  Object.keys(h).slice().sort().forEach(k => {
+    const d = new Date(k + 'T12:00:00');
+    if (d.getDay() !== 0) return;
+    let x = new Date(d.getTime() + DAY);
+    while (h[iso(x)]) x = new Date(x.getTime() + DAY);
+    h[iso(x)] = '振替休日';
+  });
+  holCache[y] = h;
+  return h;
+}
+function isHoliday(d){ return !!holidays(d.getFullYear())[iso(d)]; }
+function holidayName(d){ return holidays(d.getFullYear())[iso(d)] || null; }
+function isBizDay(d){ const w = d.getDay(); return w !== 0 && w !== 6 && !isHoliday(d); }
+
+function nthBizDay(y, m, n){
+  const days = [];
+  const last = new Date(y, m + 1, 0).getDate();
+  for (let d = 1; d <= last; d++){
+    if (isBizDay(new Date(y, m, d, 12))) days.push(d);
+  }
+  const d = n === -1 ? days[days.length - 1] : days[Math.min(n, days.length) - 1];
+  return new Date(y, m, d, 12);
 }
 function firstOccurrence(r){
   const d = atDayStart(today()); d.setHours(12,0,0,0);
+  if (r.freq === 'bizday'){
+    let t = nthBizDay(d.getFullYear(), d.getMonth(), r.n);
+    if (t < d) t = nthBizDay(d.getFullYear(), d.getMonth() + 1, r.n);
+    return iso(t);
+  }
   if (r.freq === 'daily') return iso(d);
   if (r.freq === 'weekly'){ const diff = (r.wd - d.getDay() + 7) % 7; d.setDate(d.getDate()+diff); return iso(d); }
   if (r.freq === 'monthly'){
@@ -389,6 +466,7 @@ function firstOccurrence(r){
 }
 function nextOccurrence(dateStr, r){
   const d = new Date(dateStr + 'T12:00:00');
+  if (r.freq === 'bizday') return iso(nthBizDay(d.getFullYear(), d.getMonth() + 1, r.n));
   if (r.freq === 'daily')   d.setDate(d.getDate()+1);
   if (r.freq === 'weekly')  d.setDate(d.getDate()+7);
   if (r.freq === 'monthly') d.setMonth(d.getMonth()+1);
@@ -639,7 +717,8 @@ function drawTasks(){
     h += `<div class="par" data-pid="${p.id}" style="border-left-color:${p.color}">
       <div class="par-h${p.done ? ' pdone' : ''}" draggable="true" data-dragp="${p.id}">
         <span class="grip" title="ドラッグで並べ替え">⠿</span>
-        <span class="par-t" data-ep="${p.id}" title="クリックで編集">${p.title}</span>
+        <span class="par-t" data-p="${p.id}" title="クリックで子タスクを追加">${p.title}</span>
+        <button class="editbtn" data-ep="${p.id}">編集</button>
         <span class="add" data-p="${p.id}">${openAdd === p.id ? '閉じる' : '＋ 子タスク'}</span>
         <button class="tr" data-del="${p.id}" title="親タスクごと削除">${TRASH}</button>
       </div>`;
@@ -688,7 +767,8 @@ function drawTasks(){
             <option value="">なし</option>
             <option value="daily"${k.rep && k.rep.freq==='daily'?' selected':''}>毎日</option>
             <option value="weekly"${k.rep && k.rep.freq==='weekly'?' selected':''}>毎週</option>
-            <option value="monthly"${k.rep && k.rep.freq==='monthly'?' selected':''}>毎月</option>
+            <option value="monthly"${k.rep && k.rep.freq==='monthly'?' selected':''}>毎月（日付）</option>
+            <option value="bizday"${k.rep && k.rep.freq==='bizday'?' selected':''}>毎月（営業日）</option>
             <option value="yearly"${k.rep && k.rep.freq==='yearly'?' selected':''}>毎年</option>
           </select>
           <span id="ropt"></span>
@@ -713,7 +793,8 @@ function drawTasks(){
           <option value="">なし</option>
           <option value="daily">毎日</option>
           <option value="weekly">毎週</option>
-          <option value="monthly">毎月</option>
+          <option value="monthly">毎月（日付）</option>
+          <option value="bizday">毎月（営業日）</option>
           <option value="yearly">毎年</option>
         </select>
         <span id="nropt"></span>
@@ -732,14 +813,16 @@ function drawTasks(){
 
   el.innerHTML = h;
 
-  el.querySelectorAll('.add').forEach(n => n.addEventListener('click', () => {
+  el.querySelectorAll('[data-p]').forEach(n => n.addEventListener('click', e => {
+    e.stopPropagation();
     const id = n.dataset.p;
-    openAdd = openAdd === id ? null : id; editP = null; editK = null; drawTasks();
+    openAdd = openAdd === id ? null : id; editP = null; editK = null; openStep = null; drawTasks();
     const i = document.getElementById('ni'); if (i) i.focus();
   }));
-  el.querySelectorAll('[data-ep]').forEach(n => n.addEventListener('click', () => {
+  el.querySelectorAll('[data-ep]').forEach(n => n.addEventListener('click', e => {
+    e.stopPropagation();
     const id = n.dataset.ep;
-    editP = editP === id ? null : id; editK = null; drawTasks();
+    editP = editP === id ? null : id; editK = null; openAdd = null; drawTasks();
     const i = document.getElementById('ep'); if (i){ i.focus(); i.select(); }
   }));
   el.querySelectorAll('[data-ek]').forEach(n => n.addEventListener('click', e => {
@@ -812,7 +895,10 @@ function drawTasks(){
       const i = document.getElementById('si'); if (i) i.focus();
     };
     sadd.addEventListener('click', go);
-    document.getElementById('si').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+    document.getElementById('si').addEventListener('keydown', e => {
+      if (e.key === 'Enter') go();
+      if (e.key === 'Escape'){ e.stopPropagation(); openStep = null; drawTasks(); }
+    });
   }
 
   const ekm = document.getElementById('ekm');
@@ -828,6 +914,9 @@ function drawTasks(){
         `<option value="${i}"${(r.wd !== undefined ? r.wd : now().getDay())===i?' selected':''}>${w}曜</option>`).join('')}</select>`;
       else if (f === 'monthly') opt.innerHTML = `<select id="rv">${Array.from({length:31},(_,i)=>i+1).map(d =>
         `<option value="${d}"${(r.dm !== undefined ? r.dm : now().getDate())===d?' selected':''}>${d}日</option>`).join('')}</select>`;
+      else if (f === 'bizday') opt.innerHTML = `<select id="rv">${
+        Array.from({length:10},(_,i)=>i+1).map(n => `<option value="${n}"${(r.n||1)===n?' selected':''}>第${n}営業日</option>`).join('')
+        }<option value="-1"${r.n===-1?' selected':''}>最終営業日</option></select>`;
       else if (f === 'yearly') opt.innerHTML = `<input type="date" id="rv" value="${r.mo ?
         `${now().getFullYear()}-${String(r.mo).padStart(2,'0')}-${String(r.dm).padStart(2,'0')}` : today()}">`;
       else opt.innerHTML = '';
@@ -859,6 +948,7 @@ function drawTasks(){
         const r = {freq:f};
         if (f === 'weekly')  r.wd = +v.value;
         if (f === 'monthly') r.dm = +v.value;
+        if (f === 'bizday')  r.n  = +v.value;
         if (f === 'yearly'){ const dt = atDayStart(v.value); r.mo = dt.getMonth()+1; r.dm = dt.getDate(); }
         k.rep = r; k.nextAt = firstOccurrence(r);
         if (!k.due) k.due = k.nextAt;
@@ -866,7 +956,10 @@ function drawTasks(){
       editK = null; reindex(); render();
     };
     eksave.addEventListener('click', go);
-    document.getElementById('ek').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+    document.getElementById('ek').addEventListener('keydown', e => {
+      if (e.key === 'Enter') go();
+      if (e.key === 'Escape'){ e.stopPropagation(); editK = null; drawTasks(); }
+    });
     document.getElementById('ekcancel').addEventListener('click', () => { editK = null; drawTasks(); });
   }
 
@@ -879,7 +972,10 @@ function drawTasks(){
       p.title = t; editP = null; render();
     };
     epsave.addEventListener('click', go);
-    document.getElementById('ep').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+    document.getElementById('ep').addEventListener('keydown', e => {
+      if (e.key === 'Enter') go();
+      if (e.key === 'Escape'){ e.stopPropagation(); editP = null; drawTasks(); }
+    });
     document.getElementById('epcancel').addEventListener('click', () => { editP = null; drawTasks(); });
   }
 
@@ -894,6 +990,9 @@ function drawTasks(){
         `<option value="${i}"${now().getDay()===i?' selected':''}>${w}曜</option>`).join('')}</select>`;
       else if (f === 'monthly') opt.innerHTML = `<select id="nrv">${Array.from({length:31},(_,i)=>i+1).map(d =>
         `<option value="${d}"${now().getDate()===d?' selected':''}>${d}日</option>`).join('')}</select>`;
+      else if (f === 'bizday') opt.innerHTML = `<select id="nrv">${
+        Array.from({length:10},(_,i)=>i+1).map(n => `<option value="${n}">第${n}営業日</option>`).join('')
+        }<option value="-1">最終営業日</option></select>`;
       else if (f === 'yearly') opt.innerHTML = `<input type="date" id="nrv" value="${today()}">`;
       else opt.innerHTML = '';
     };
@@ -914,6 +1013,7 @@ function drawTasks(){
         rep = {freq:f};
         if (f === 'weekly')  rep.wd = +v.value;
         if (f === 'monthly') rep.dm = +v.value;
+        if (f === 'bizday')  rep.n  = +v.value;
         if (f === 'yearly'){ const dt = atDayStart(v.value); rep.mo = dt.getMonth()+1; rep.dm = dt.getDate(); }
         nextAt = firstOccurrence(rep);
         if (!due) due = nextAt;
@@ -927,7 +1027,10 @@ function drawTasks(){
       const i = document.getElementById('ni'); if (i) i.focus();
     };
     nadd.addEventListener('click', go);
-    document.getElementById('ni').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+    document.getElementById('ni').addEventListener('keydown', e => {
+      if (e.key === 'Enter') go();
+      if (e.key === 'Escape'){ e.stopPropagation(); openAdd = null; drawTasks(); }
+    });
   }
   const pnew = document.getElementById('pnew');
   if (pnew) pnew.addEventListener('click', () => { addingParent = true; drawTasks(); document.getElementById('pi').focus(); });
@@ -943,7 +1046,10 @@ function drawTasks(){
       const i = document.getElementById('ni'); if (i) i.focus();
     };
     padd.addEventListener('click', go);
-    document.getElementById('pi').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+    document.getElementById('pi').addEventListener('keydown', e => {
+      if (e.key === 'Enter') go();
+      if (e.key === 'Escape'){ e.stopPropagation(); addingParent = false; drawTasks(); }
+    });
     document.getElementById('pcancel').addEventListener('click', () => { addingParent = false; drawTasks(); });
   }
 }
@@ -1084,6 +1190,13 @@ function drawDirs(){
   const tree = document.getElementById('dtree');
   let h = '<div class="ph" style="border:none;padding:0 0 6px"><span class="pt">directories</span></div>';
   if (!dirs.length && !adding) h += '<div class="hint">フォルダで分類しつつ、よく使うパスを登録しておく</div>';
+  const inbox = dirs.filter(d => d.p === INBOX);
+  h += `<div class="inbox-h">未整理 <span class="n">${inbox.length}</span>
+    <button class="x" id="quickNew">＋ とりあえず登録</button></div>`;
+  if (adding && adding.parent === INBOX) h += dirForm(0);
+  if (inbox.length) h += inbox.map(d => dirRow(d, 0)).join('');
+  else if (!(adding && adding.parent === INBOX)) h += '<div class="hint">パスと名前だけ入れて後で整理</div>';
+  h += '<div class="inbox-sep"></div>';
   dirChildren(null).forEach(d => h += dirRow(d, 0));
   if (adding && adding.parent === null) h += dirForm(0);
   h += `<div style="display:flex;gap:6px;margin-top:7px">
@@ -1149,10 +1262,27 @@ function drawDirs(){
     <div class="k">path</div>
     <input type="text" id="pathBox" class="pathbox" value="${(d.path || '').replace(/"/g,'&quot;')}" readonly>
     <div class="k">note</div><div style="font-size:12.5px;color:var(--ink-2);margin:2px 0 11px">${d.note || '—'}</div>
+    <div class="k">移動先</div>
+    <div style="display:flex;gap:6px;align-items:center;margin:3px 0 11px">
+      <select id="dmove" class="sortsel" style="flex:1">
+        <option value="${INBOX}"${d.p===INBOX?' selected':''}>未整理</option>
+        <option value="">ルート</option>
+        ${dirs.filter(x => x.type==='folder').map(f =>
+          `<option value="${f.id}"${d.p===f.id?' selected':''}>${dirPath(f)==='ルート'?'':dirPath(f)+' / '}${f.name}</option>`).join('')}
+      </select>
+      <button class="btn sm" id="dmovego">移動</button>
+    </div>
     ${d.path ? '<button class="btn" id="cp">パスをコピー</button>' : ''}`
     : '<div class="empty">登録したパスを選ぶと詳細が出る</div>';
   const pb = document.getElementById('pathBox');
   if (pb) pb.addEventListener('focus', () => pb.select());
+  const mg = document.getElementById('dmovego');
+  if (mg) mg.addEventListener('click', () => {
+    const v = document.getElementById('dmove').value;
+    d.p = v === '' ? null : v;
+    if (d.p && d.p !== INBOX) expanded.add(d.p);
+    drawDirs();
+  });
   const cp = document.getElementById('cp');
   if (cp) cp.addEventListener('click', async () => {
     const ok = await copyText(d.path);
@@ -1197,6 +1327,7 @@ window.addEventListener('resize', fitHeights);
 
 
 /* ---------- 永続化：File System Access + localStorage ---------- */
+const INBOX = '__inbox';
 const LS_KEY = 'quadra.v1';
 let fileHandle = null, pendingHandle = null, lastWrite = 0, saveTimer = null, loading = true, lastSavedAt = 0;
 
@@ -1400,10 +1531,15 @@ window.addEventListener('beforeunload', () => { if (saveTimer){ clearTimeout(sav
     const nowN = kids.filter(k => k.now && !k.done).length;
     const wait = kids.filter(k => k.waiting && !k.done && !k.arch).length;
     const soon = kids.filter(k => !k.done && !k.arch && k.due && daysLeft(k) !== null && daysLeft(k) <= 1).length;
-    sum.innerHTML = `<div class="r"><span>未完了</span><b>${open}</b></div>
+    const hy = now().getFullYear();
+    const note = hy >= HOLIDAY_CHECKED_UNTIL
+      ? `<div class="r warn"><span>祝日データ</span><b>要確認</b></div>` : '';
+    const hn = holidayName(now());
+    const todayNote = hn ? `<div class="r"><span>本日</span><b>${hn}</b></div>` : '';
+    sum.innerHTML = todayNote + `<div class="r"><span>未完了</span><b>${open}</b></div>
       <div class="r"><span>本日まで</span><b>${soon}</b></div>
       <div class="r"><span>取り組み中</span><b>${nowN}</b></div>
-      <div class="r"><span>相手待ち</span><b>${wait}</b></div>`;
+      <div class="r"><span>相手待ち</span><b>${wait}</b></div>` + note;
   }
 
   const say = t => {
