@@ -631,7 +631,14 @@ function urgency(k){
   if (R !== null){
     u = R <= 0 ? 100 : 100 * (1 - Math.log(1 + R) / Math.log(1 + HORIZON));
   } else {
-    const e = Math.max(0, elapsed(k));
+    let e;
+    if (k.waiting){
+      const from = k.recv ? atDayStart(k.recv) : null;
+      const to = k.since ? atDayStart(k.since) : null;
+      e = (from && to) ? Math.max(0, (to - from) / DAY) : 0;
+    } else {
+      e = Math.max(0, elapsed(k));
+    }
     u = NODUE_BASE + (NODUE_CAP - NODUE_BASE) * Math.min(1, e / NODUE_DAYS);
   }
   return Math.max(MIN_U, Math.min(100, u));
@@ -641,6 +648,10 @@ function label(k){
   if (k.someday) return '時間があるとき';
   const R = daysLeft(k);
   if (R === null){
+    if (k.waiting && k.since){
+      const w = Math.floor((now() - atDayStart(k.since)) / DAY);
+      return w < 1 ? '待ち開始' : '待ち' + w + '日';
+    }
     const e = Math.floor(Math.max(0, elapsed(k)));
     return e < 1 ? '本日受領' : '受領から' + e + '日';
   }
