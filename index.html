@@ -208,6 +208,12 @@ svg.mx{display:block;width:100%;height:100%}
 .stbox.on{background:var(--ink-3);border-color:var(--ink-3)}
 .st.done .stbox{opacity:.4}
 .st .tr{width:16px;height:16px}
+.stedit{flex:1;min-width:0;border:1px solid var(--line-2);border-radius:var(--r);
+  padding:2px 7px;font-size:12px;background:#fff}
+.stedit:focus{outline:none;border-color:var(--ink)}
+.stt{cursor:pointer}
+.st:hover .stt{text-decoration:underline;text-decoration-color:var(--line-2);text-underline-offset:2px}
+.st.done:hover .stt{text-decoration:line-through}
 .stadd{padding-left:34px}
 .stadd input{flex:1;min-width:120px}
 .waitbtn{font-size:10px;color:var(--ink-3);border:1px solid var(--line-2);border-radius:99px;
@@ -597,6 +603,7 @@ let openAdd = null, addingParent = false, editK = null, editP = null;
 let sortMode = 'urgency';
 let openStep = null;
 let collapsed = new Set();
+let editStep = null;
 let adding = null;
 let dirSort = 'name';
 let folderFirst = true, dirEdit = null, cwd = null;
@@ -868,7 +875,9 @@ function drawTasks(){
         h += (k.steps||[]).map(st => `<div class="st${st.done?' done':''}" data-stid="${st.id}">
           <span class="stbox${st.done?' on':''}" data-sttog="${st.id}"></span>
           ${st.waiting && !st.done ? `<span class="wm sm" style="border-color:${p.color}"></span>` : ''}
-          <span class="stt">${st.text}</span>
+          ${editStep === st.id
+            ? `<input type="text" class="stedit" id="se" value="${st.text.replace(/"/g,'&quot;')}">`
+            : `<span class="stt" data-stedit="${st.id}" title="クリックで編集">${st.text}</span>`}
           ${st.done ? '' : `<button class="waitbtn${st.waiting?' on':''}" data-stwait="${st.id}">待ち</button>`}
           ${st.waiting && !st.done ? `<span class="u">${stepLabel(st)}</span>` : ''}
           <button class="tr" data-stdel="${st.id}">${TRASH}</button></div>`).join('');
@@ -991,6 +1000,26 @@ function drawTasks(){
     }));
     render();
   }));
+  el.querySelectorAll('[data-stedit]').forEach(n => n.addEventListener('click', e => {
+    e.stopPropagation();
+    editStep = editStep === n.dataset.stedit ? null : n.dataset.stedit;
+    drawTasks();
+    const i = document.getElementById('se'); if (i){ i.focus(); i.select(); }
+  }));
+  const se = document.getElementById('se');
+  if (se){
+    const save = () => {
+      const t = se.value.trim();
+      if (!t) return se.focus();
+      kids.forEach(k => (k.steps||[]).forEach(st => { if (st.id === editStep) st.text = t; }));
+      editStep = null; render();
+    };
+    se.addEventListener('keydown', e => {
+      if (e.key === 'Enter') save();
+      if (e.key === 'Escape'){ e.stopPropagation(); editStep = null; drawTasks(); }
+    });
+    se.addEventListener('blur', save);
+  }
   el.querySelectorAll('[data-stdel]').forEach(b => b.addEventListener('click', e => {
     e.stopPropagation();
     const id = b.dataset.stdel;
