@@ -609,6 +609,12 @@ function cycleCheck(){
   });
 }
 
+function esc(t){
+  return String(t == null ? '' : t)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 const TRASH = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13h12l1-13M9 7V4h6v3"/></svg>`;
 
 let uid = 1;
@@ -756,11 +762,11 @@ function bindDots(){
         const ids = el.dataset.g.split(',');
         h = `<div class="b">${ids.length}件が重なっています</div>` + ids.map(id => {
           const k = kids.find(x => x.id === id);
-          return `<div class="a">${k.title}</div><div class="c">${parOf(k).title} · ${label(k)}</div>`;
+          return `<div class="a">${esc(k.title)}</div><div class="c">${parOf(k).title} · ${label(k)}</div>`;
         }).join('');
       } else {
         const k = kids.find(x => x.id === el.dataset.id);
-        h = `<div class="a">${k.title}</div><div class="b">${parOf(k).title}${k.waiting?' · 相手待ち':''}</div>
+        h = `<div class="a">${esc(k.title)}</div><div class="b">${parOf(k).title}${k.waiting?' · 相手待ち':''}</div>
              <div class="c">${label(k)} · 重要 ${k.imp} / 緊急 ${Math.round(urgency(k))}</div>`;
       }
       tip.innerHTML = h; tip.style.display = 'block';
@@ -798,8 +804,8 @@ function drawSomeday(){
   el.innerHTML = `<span class="sdlab">時間があるとき<span class="n">${l.length}</span></span>
     <span class="sddots">${l.map(k => {
       const p = parOf(k);
-      return `<span class="sdchip${sel===k.id?' on':''}" data-sd="${k.id}" title="${p.title}">
-        <span class="sddot" style="background:${p.color}"></span>${k.title}</span>`;
+      return `<span class="sdchip${sel===k.id?' on':''}" data-sd="${k.id}" title="${esc(p.title)}">
+        <span class="sddot" style="background:${p.color}"></span>${esc(k.title)}</span>`;
     }).join('')}</span>`;
   el.querySelectorAll('[data-sd]').forEach(n => n.addEventListener('click', () => {
     sel = sel === n.dataset.sd ? null : n.dataset.sd;
@@ -815,7 +821,7 @@ function drawNow(){
   document.getElementById('nowList').innerHTML = l.length ? l.map(k => {
     const u = urgency(k);
     return `<div class="now-i" style="border-left-color:${colorOf(k)}">
-      <div style="flex:1;min-width:0"><div class="now-t">${k.title}</div><div class="now-m">${parOf(k).title}</div></div>
+      <div style="flex:1;min-width:0"><div class="now-t">${esc(k.title)}</div><div class="now-m">${esc(parOf(k).title)}</div></div>
       <span class="pill${u>75?' hot':''}">${label(k)}</span></div>`;
   }).join('') : '<div class="empty">子タスクの「now」を押すとここに並ぶ</div>';
 }
@@ -862,7 +868,7 @@ function drawTasks(){
     const d = kids.filter(k => k.done && k.doneAt && !k.rep).sort((a,b) => b.doneAt.localeCompare(a.doneAt));
     el.innerHTML = d.length ? d.map(k => `<div class="arow"><span class="d">${k.doneAt.slice(5).replace('-','/')}</span>
       <span style="width:7px;height:7px;border-radius:2px;background:${colorOf(k)};flex:none"></span>
-      <span class="t">${k.title}</span></div>`).join('') : '<div class="empty">完了したタスクはまだありません</div>';
+      <span class="t">${esc(k.title)}</span></div>`).join('') : '<div class="empty">完了したタスクはまだありません</div>';
     return;
   }
 
@@ -876,7 +882,7 @@ function drawTasks(){
         ${man
           ? '<span class="grip" title="ドラッグで並べ替え">⠿</span>'
           : `<span class="pcv" data-foldp="${p.id}" title="開閉">${collapsed.has(p.id) ? '▸' : '▾'}</span>`}
-        <span class="par-t" data-p="${p.id}" title="クリックで子タスクを追加">${p.title}</span>
+        <span class="par-t" data-p="${p.id}" title="クリックで子タスクを追加">${esc(p.title)}</span>
         <button class="editbtn" data-ep="${p.id}">編集</button>
         ${collapsed.has(p.id) ? `<span class="pcount">${kidsOf(p.id).filter(k=>!k.done).length}</span>` : ''}
         <span class="add" data-p="${p.id}">${openAdd === p.id ? '閉じる' : '＋ 子タスク'}</span>
@@ -885,7 +891,7 @@ function drawTasks(){
 
     if (editP === p.id){
       h += `<div class="inline editbar">
-        <input type="text" id="ep" value="${p.title.replace(/"/g,'&quot;')}" autocomplete="off">
+        <input type="text" id="ep" value="${esc(p.title)}" autocomplete="off">
         <button class="btn sm pri" id="epsave">保存</button>
         <button class="btn sm" id="epcancel">やめる</button>
       </div>`;
@@ -896,7 +902,7 @@ function drawTasks(){
         ${man ? '<span class="grip sm" title="ドラッグで並べ替え">⠿</span>' : ''}
         <span class="box${k.done?' on':''}" data-tog="${k.id}"></span>
         ${k.waiting && !k.done ? `<span class="wm" style="border-color:${p.color}"></span>` : ''}
-        <span class="ch-t" data-step="${k.id}" title="クリックで経過を追記">${k.title}</span>
+        <span class="ch-t" data-step="${k.id}" title="クリックで経過を追記">${esc(k.title)}</span>
         ${(k.steps||[]).filter(x=>!x.done).length ? `<span class="stepn">${(k.steps||[]).filter(x=>!x.done).length}</span>` : ''}
         <button class="editbtn" data-ek="${k.id}">編集</button>
         ${k.someday && !k.done ? '<span class="sdmark">いつか</span>' : ''}
@@ -909,8 +915,8 @@ function drawTasks(){
           <span class="stbox${st.done?' on':''}" data-sttog="${st.id}"></span>
           ${st.waiting && !st.done ? `<span class="wm sm" style="border-color:${p.color}"></span>` : ''}
           ${editStep === st.id
-            ? `<input type="text" class="stedit" id="se" value="${st.text.replace(/"/g,'&quot;')}">`
-            : `<span class="stt" data-stedit="${st.id}" title="クリックで編集">${st.text}</span>`}
+            ? `<input type="text" class="stedit" id="se" value="${esc(st.text)}">`
+            : `<span class="stt" data-stedit="${st.id}" title="クリックで編集">${esc(st.text)}</span>`}
           ${st.done ? '' : `<button class="waitbtn${st.waiting?' on':''}" data-stwait="${st.id}">待ち</button>`}
           ${st.waiting && !st.done ? `<span class="u">${stepLabel(st)}</span>` : ''}
           <button class="tr" data-stdel="${st.id}">${TRASH}</button></div>`).join('');
@@ -924,7 +930,7 @@ function drawTasks(){
       }
       if (editK === k.id){
         h += `<div class="inline editbar">
-          <input type="text" id="ek" value="${k.title.replace(/"/g,'&quot;')}" autocomplete="off">
+          <input type="text" id="ek" value="${esc(k.title)}" autocomplete="off">
           <span class="lab">連絡日</span><input type="date" id="ekr" value="${k.recv || ''}">
           <span class="lab">締切</span><input type="date" id="ekd" value="${k.due || ''}">
           <span class="sl"><span class="lab">重要</span><input type="range" id="ekm" min="1" max="10" value="${k.imp}"><b id="ekmv">${k.imp}</b></span>
@@ -942,7 +948,7 @@ function drawTasks(){
           <span id="ropt"></span>
           <span class="lab">親</span>
           <select id="ekp">${sortedParents().map(x =>
-            `<option value="${x.id}"${x.id===k.parent?' selected':''}>${x.title}</option>`).join('')}</select>
+            `<option value="${x.id}"${x.id===k.parent?' selected':''}>${esc(x.title)}</option>`).join('')}</select>
           <button class="btn sm pri" id="eksave">保存</button>
           <button class="btn sm" id="ekcancel">やめる</button>
         </div>`;
@@ -1365,7 +1371,7 @@ function drawWait(){
   document.getElementById('waitCount').textContent = l.length || '';
   document.getElementById('waitList').innerHTML = l.length ? l.map(x =>
     `<div class="wt"><span class="d" style="border-color:${x.c}"></span>
-      <span class="t">${x.sub ? `<span class="sub">${x.sub} › </span>` : ''}${x.t}</span>
+      <span class="t">${x.sub ? `<span class="sub">${esc(x.sub)} › </span>` : ''}${esc(x.t)}</span>
       <span class="e">${x.e}</span></div>`).join('')
     : '<div class="empty">「相手待ち」を付けたものがここに並ぶ</div>';
 }
@@ -1423,7 +1429,7 @@ function dirRow(d){
     ${dirColor(d) ? `<span class="dcol" style="background:${dirColor(d)}"></span>` : '<span class="dcol none"></span>'}
     <span class="${isF ? 'fn' : 'en'}${!isF && isUrl(d.path) ? ' link' : ''}">${d.name}${!isF && isUrl(d.path) ? '<span class="lmk">↗</span>' : ''}</span>
     ${isF ? `<span class="cnum">${n || ''}</span>` : ''}
-    ${!isF && d.path ? `<span class="ppeek">${d.path}</span>` : ''}
+    ${!isF && d.path ? `<span class="ppeek">${esc(d.path)}</span>` : ''}
     ${isF ? `<button class="x" data-af="${d.id}">＋フォルダ</button>
     <button class="x" data-ae="${d.id}">＋パス</button>` : ''}
     <button class="tr" data-del="${d.id}" title="ゴミ箱へ">${TRASH}</button>
@@ -1454,8 +1460,8 @@ function treeRow(d, pre, last){
   if (!isF){
     return `<div class="dn entry${selDir === d.id ? ' sel' : ''}" data-did="${d.id}" data-type="entry" draggable="true">
       ${g}${dirColor(d) ? `<span class="dcol" style="background:${dirColor(d)}"></span>` : '<span class="dcol none"></span>'}<span class="ficon file"></span>
-      <span class="en${isUrl(d.path) ? ' link' : ''}">${d.name}${isUrl(d.path) ? '<span class="lmk">↗</span>' : ''}</span>
-      ${d.path ? `<span class="ppeek">${d.path}</span>` : ''}
+      <span class="en${isUrl(d.path) ? ' link' : ''}">${esc(d.name)}${isUrl(d.path) ? '<span class="lmk">↗</span>' : ''}</span>
+      ${d.path ? `<span class="ppeek">${esc(d.path)}</span>` : ''}
       <button class="tr" data-del="${d.id}" title="ゴミ箱へ">${TRASH}</button></div>`;
   }
   const open = expanded.has(d.id);
@@ -1463,7 +1469,7 @@ function treeRow(d, pre, last){
   let h = `<div class="dn folder" data-did="${d.id}" data-type="folder" data-fold="${d.id}" draggable="true">
     ${g}<span class="cvt">${open ? '▾' : '▸'}</span>
     ${dirColor(d) ? `<span class="dcol" style="background:${dirColor(d)}"></span>` : '<span class="dcol none"></span>'}<span class="ficon"></span>
-    <span class="fn">${d.name}</span>
+    <span class="fn">${esc(d.name)}</span>
     <span class="cnum">${list.length || ''}</span>
     <button class="x" data-af="${d.id}">＋フォルダ</button>
     <button class="x" data-ae="${d.id}">＋パス</button>
@@ -1489,7 +1495,7 @@ function crumbs(){
   if (cwd === INBOX) h += `<span class="crsep">/</span><span class="cr now" data-cd="${INBOX}">未整理</span>`;
   else if (cwd === TRASH_VIEW) h += `<span class="crsep">/</span><span class="cr now" data-cd="${TRASH_VIEW}">ゴミ箱</span>`;
   else parts.forEach((x,i) => {
-    h += `<span class="crsep">/</span><span class="cr${i===parts.length-1?' now':''}" data-cd="${x.id}">${x.name}</span>`;
+    h += `<span class="crsep">/</span><span class="cr${i===parts.length-1?' now':''}" data-cd="${x.id}">${esc(x.name)}</span>`;
   });
   return h;
 }
@@ -1540,7 +1546,7 @@ function drawDirs(){
   if (inTrash){
     const tl = trashed();
     h += tl.length ? tl.map(d => `<div class="dn trashrow">
-      <span class="${d.type === 'folder' ? 'fn' : 'en'}">${d.name}</span>
+      <span class="${d.type === 'folder' ? 'fn' : 'en'}">${esc(d.name)}</span>
       <span class="tleft">あと${trashDays(d)}日</span>
       <button class="x" data-restore="${d.id}">戻す</button>
       <button class="x" data-purge="${d.id}">完全削除</button></div>`).join('')
@@ -1744,9 +1750,9 @@ function drawDirDetail(){
     box.innerHTML = `
       <div class="crumb">${dirPath(d)}</div>
       <div class="dtitle">編集</div>
-      <div class="k">name</div><input type="text" id="edn" class="pathbox" value="${(d.name||'').replace(/"/g,'&quot;')}">
-      ${d.type === 'entry' ? `<div class="k">path</div><input type="text" id="edp" class="pathbox" value="${(d.path||'').replace(/"/g,'&quot;')}">` : ''}
-      <div class="k">note</div><input type="text" id="edt" class="pathbox" value="${(d.note||'').replace(/"/g,'&quot;')}">
+      <div class="k">name</div><input type="text" id="edn" class="pathbox" value="${esc(d.name||'')}">
+      ${d.type === 'entry' ? `<div class="k">path</div><input type="text" id="edp" class="pathbox" value="${esc(d.path||'')}">` : ''}
+      <div class="k">note</div><input type="text" id="edt" class="pathbox" value="${esc(d.note||'')}">
       <div style="display:flex;gap:6px;margin-top:4px">
         <button class="btn sm pri" id="edsave">保存</button>
         <button class="btn sm" id="edcancel">やめる</button></div>`;
@@ -1771,15 +1777,15 @@ function drawDirDetail(){
 
   box.innerHTML = `
     <div class="crumb">${dirPath(d)}</div>
-    <div class="dtitle">${d.name}<button class="x dedit" id="dEdit">編集</button></div>
+    <div class="dtitle">${esc(d.name)}<button class="x dedit" id="dEdit">編集</button></div>
     <div class="k">path</div>
-    <input type="text" id="pathBox" class="pathbox${isUrl(d.path) ? ' link' : ''}" value="${(d.path || '').replace(/"/g,'&quot;')}" readonly>
-    <div class="k">note</div><div class="dnote">${d.note || '—'}</div>
+    <input type="text" id="pathBox" class="pathbox${isUrl(d.path) ? ' link' : ''}" value="${esc(d.path || '')}" readonly>
+    <div class="k">note</div><div class="dnote">${esc(d.note) || '—'}</div>
     <div class="k">紐づけ</div>
     <div style="display:flex;gap:6px;align-items:center;margin:3px 0 11px">
       <select id="dlink" class="sortsel" style="flex:1">
         <option value="">なし${dirColor(d) && !d.pid ? '（上位から継承中）' : ''}</option>
-        ${parents.map(x => `<option value="${x.id}"${d.pid===x.id?' selected':''}>${x.title}</option>`).join('')}
+        ${parents.map(x => `<option value="${x.id}"${d.pid===x.id?' selected':''}>${esc(x.title)}</option>`).join('')}
       </select>
       <span class="dcol lg" style="background:${dirColor(d) || 'transparent'};
         ${dirColor(d) ? '' : 'border:1px dashed var(--line-2)'}"></span>
@@ -1790,12 +1796,12 @@ function drawDirDetail(){
         <option value="${INBOX}"${d.p===INBOX?' selected':''}>未整理</option>
         <option value=""${d.p===null?' selected':''}>ルート</option>
         ${dirs.filter(x => x.type==='folder' && !x.deletedAt).map(f =>
-          `<option value="${f.id}"${d.p===f.id?' selected':''}>${dirPath(f)==='ルート'?'':dirPath(f)+' / '}${f.name}</option>`).join('')}
+          `<option value="${f.id}"${d.p===f.id?' selected':''}>${dirPath(f)==='ルート'?'':dirPath(f)+' / '}${esc(f.name)}</option>`).join('')}
       </select>
       <button class="btn sm" id="dmovego">移動</button>
     </div>
     ${d.path ? (isUrl(d.path)
-      ? `<div style="display:flex;gap:6px"><a class="btn openlink" id="ol" href="${d.path}" target="_blank" rel="noopener">リンクを開く</a>
+      ? `<div style="display:flex;gap:6px"><a class="btn openlink" id="ol" href="${isUrl(d.path) ? esc(d.path) : '#'}" target="_blank" rel="noopener">リンクを開く</a>
          <button class="btn" id="cp">URLをコピー</button></div>`
       : '<button class="btn" id="cp">パスをコピー</button>') : ''}`;
 
