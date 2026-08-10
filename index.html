@@ -274,6 +274,12 @@ svg.mx{display:block;width:100%;height:100%}
 .el.last::before{bottom:auto;height:50%}
 .el::after{content:"";position:absolute;left:6px;top:50%;width:8px;
   border-top:1px solid var(--line-2)}
+.en.link{color:#0161d5}
+.dn.sel .en.link{color:#0161d5}
+.lmk{font-size:9px;margin-left:4px;opacity:.7;vertical-align:1px}
+.pathbox.link{color:#0161d5}
+.openlink{display:inline-flex;align-items:center;text-decoration:none;border-color:#0161d5;color:#0161d5}
+.openlink:hover{background:#0161d5;color:#fff}
 .dcol{width:4px;height:14px;border-radius:2px;flex:none;margin-right:1px}
 .dcol.none{background:transparent}
 .dcol.lg{width:14px;height:14px;border-radius:3px}
@@ -1388,7 +1394,7 @@ function dirRow(d){
   return `<div class="dn ${isF ? 'folder' : 'entry'}${selDir === d.id ? ' sel' : ''}"
       data-did="${d.id}" data-type="${d.type}" draggable="true">
     ${dirColor(d) ? `<span class="dcol" style="background:${dirColor(d)}"></span>` : '<span class="dcol none"></span>'}
-    <span class="${isF ? 'fn' : 'en'}">${d.name}</span>
+    <span class="${isF ? 'fn' : 'en'}${!isF && isUrl(d.path) ? ' link' : ''}">${d.name}${!isF && isUrl(d.path) ? '<span class="lmk">↗</span>' : ''}</span>
     ${isF ? `<span class="cnum">${n || ''}</span>` : ''}
     ${!isF && d.path ? `<span class="ppeek">${d.path}</span>` : ''}
     ${isF ? `<button class="x" data-af="${d.id}">＋フォルダ</button>
@@ -1421,7 +1427,7 @@ function treeRow(d, pre, last){
   if (!isF){
     return `<div class="dn entry${selDir === d.id ? ' sel' : ''}" data-did="${d.id}" data-type="entry" draggable="true">
       ${g}${dirColor(d) ? `<span class="dcol" style="background:${dirColor(d)}"></span>` : '<span class="dcol none"></span>'}<span class="ficon file"></span>
-      <span class="en">${d.name}</span>
+      <span class="en${isUrl(d.path) ? ' link' : ''}">${d.name}${isUrl(d.path) ? '<span class="lmk">↗</span>' : ''}</span>
       ${d.path ? `<span class="ppeek">${d.path}</span>` : ''}
       <button class="tr" data-del="${d.id}" title="ゴミ箱へ">${TRASH}</button></div>`;
   }
@@ -1740,7 +1746,7 @@ function drawDirDetail(){
     <div class="crumb">${dirPath(d)}</div>
     <div class="dtitle">${d.name}<button class="x dedit" id="dEdit">編集</button></div>
     <div class="k">path</div>
-    <input type="text" id="pathBox" class="pathbox" value="${(d.path || '').replace(/"/g,'&quot;')}" readonly>
+    <input type="text" id="pathBox" class="pathbox${isUrl(d.path) ? ' link' : ''}" value="${(d.path || '').replace(/"/g,'&quot;')}" readonly>
     <div class="k">note</div><div class="dnote">${d.note || '—'}</div>
     <div class="k">紐づけ</div>
     <div style="display:flex;gap:6px;align-items:center;margin:3px 0 11px">
@@ -1761,7 +1767,10 @@ function drawDirDetail(){
       </select>
       <button class="btn sm" id="dmovego">移動</button>
     </div>
-    ${d.path ? '<button class="btn" id="cp">パスをコピー</button>' : ''}`;
+    ${d.path ? (isUrl(d.path)
+      ? `<div style="display:flex;gap:6px"><a class="btn openlink" id="ol" href="${d.path}" target="_blank" rel="noopener">リンクを開く</a>
+         <button class="btn" id="cp">URLをコピー</button></div>`
+      : '<button class="btn" id="cp">パスをコピー</button>') : ''}`;
 
   const de = document.getElementById('dEdit');
   if (de) de.addEventListener('click', () => { dirEdit = d.id; drawDirs(); });
@@ -1778,13 +1787,15 @@ function drawDirDetail(){
   const cp = document.getElementById('cp');
   if (cp) cp.addEventListener('click', async () => {
     const ok = await copyText(d.path);
+    const base = isUrl(d.path) ? 'URLをコピー' : 'パスをコピー';
     cp.textContent = ok ? 'コピーしました' : '上の欄を選択してコピー';
     if (!ok && pb){ pb.focus(); pb.select(); }
-    setTimeout(() => cp.textContent = 'パスをコピー', 1800);
+    setTimeout(() => cp.textContent = base, 1800);
   });
 }
 
 
+function isUrl(v){ return /^https?:\/\//i.test((v||'').trim()); }
 function dirColor(d){
   let cur = d, guard = 0;
   while (cur && guard++ < 30){
