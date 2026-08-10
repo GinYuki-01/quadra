@@ -424,6 +424,7 @@ svg.mx{display:block;width:100%;height:100%}
             <button class="tab on" data-v="open">進行中</button>
             <button class="tab" data-v="archive">アーカイブ</button>
           </div>
+          <label class="cb ff"><input type="checkbox" id="sofChk"${stepOpenFirst?' checked':''}> 未完了を上に</label>
           <select id="sortSel" class="sortsel">
             <option value="urgency">緊急度順</option>
             <option value="due">締切順</option>
@@ -617,6 +618,7 @@ let dirs = [];
 let view = 'open', hidden = new Set(), sel = null, selDir = null;
 let openAdd = null, addingParent = false, editK = null, editP = null;
 let sortMode = 'urgency';
+let stepOpenFirst = false;
 let openStep = null;
 let collapsed = new Set();
 let editStep = null;
@@ -818,6 +820,10 @@ function drawNow(){
   }).join('') : '<div class="empty">子タスクの「now」を押すとここに並ぶ</div>';
 }
 
+function sortSteps(list){
+  if (!stepOpenFirst) return list;
+  return list.slice().sort((a,b) => (a.done - b.done));
+}
 function sortKids(list){
   const arr = list.slice();
   const by = {
@@ -899,7 +905,7 @@ function drawTasks(){
         <button class="tr" data-delk="${k.id}" title="削除">${TRASH}</button>
         <span class="u">${k.done ? '' : label(k)}</span></div>`;
       if (!k.done && (k.steps||[]).length){
-        h += (k.steps||[]).map(st => `<div class="st${st.done?' done':''}" data-stid="${st.id}">
+        h += sortSteps(k.steps||[]).map(st => `<div class="st${st.done?' done':''}" data-stid="${st.id}">
           <span class="stbox${st.done?' on':''}" data-sttog="${st.id}"></span>
           ${st.waiting && !st.done ? `<span class="wm sm" style="border-color:${p.color}"></span>` : ''}
           ${editStep === st.id
@@ -1848,6 +1854,10 @@ function fitHeights(){
 }
 function render(){ cycleCheck(); scheduleSave(); drawClock(); drawLegend(); drawMatrix(); drawSomeday(); drawNow(); drawTasks(); drawWait(); }
 
+document.getElementById('sofChk').addEventListener('change', e => {
+  stepOpenFirst = e.target.checked;
+  drawTasks();
+});
 document.getElementById('sortSel').addEventListener('change', e => {
   sortMode = e.target.value;
   if (sortMode === 'manual') reindex();
@@ -1888,17 +1898,19 @@ async function idbGet(){
   }catch(e){ return null; }
 }
 
-function snapshot(){ lastSavedAt = Date.now(); return {v:1, savedAt:lastSavedAt, uid, parents, kids, dirs, sortMode, dirSort, dirView, expanded:[...expanded]}; }
+function snapshot(){ lastSavedAt = Date.now(); return {v:1, savedAt:lastSavedAt, uid, parents, kids, dirs, sortMode, dirSort, dirView, stepOpenFirst, expanded:[...expanded]}; }
 function restore(d){
   if (!d) return false;
   parents = d.parents || []; kids = d.kids || []; dirs = d.dirs || [];
   kids.forEach(k => { if (!k.recv) k.recv = k.since || k.doneAt || today(); });
   uid = d.uid || 1;
   if (d.sortMode) sortMode = d.sortMode;
+  if (typeof d.stepOpenFirst === 'boolean') stepOpenFirst = d.stepOpenFirst;
   if (d.dirSort) dirSort = d.dirSort;
   if (d.dirView) dirView = d.dirView;
   if (Array.isArray(d.expanded)) expanded = new Set(d.expanded);
   const ss = document.getElementById('sortSel'); if (ss) ss.value = sortMode;
+  const sf = document.getElementById('sofChk'); if (sf) sf.checked = stepOpenFirst;
   const ds = document.getElementById('dirSort'); if (ds) ds.value = dirSort;
   lastSavedAt = d.savedAt || 0;
   return true;
