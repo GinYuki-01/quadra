@@ -23,7 +23,7 @@
   --r:5px;
 }
 *{box-sizing:border-box}
-html,body{margin:0;padding:0;height:100%}
+html,body{margin:0;padding:0;height:100%;max-width:100%;overflow-x:hidden}
 body{
   background:var(--bg);color:var(--ink);
   font-family:"Zen Kaku Gothic New",system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif;
@@ -93,13 +93,17 @@ header.lv4 .ib.dev{display:none}
 .top > *{min-width:0}
 @media(max-width:1060px){.top{grid-template-columns:1fr}}
 
-.panel{border:1.5px solid var(--line);border-radius:var(--r);background:#fff;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.panel{border:1.5px solid var(--line);border-radius:var(--r);background:#fff;display:flex;flex-direction:column;min-height:0;min-width:0;overflow:hidden}
 .ph{display:flex;align-items:center;justify-content:space-between;padding:7px 11px;border-bottom:1px solid var(--line-2);flex:none}
 .pt{font-size:11px;letter-spacing:.12em;color:var(--ink-2);text-transform:uppercase}
 .cnt{font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
 .pb{padding:9px 11px;overflow:auto;min-height:0}
 
-.mxwrap{position:relative;padding:8px;flex:1 1 auto;min-height:220px;display:flex;min-width:0;overflow:hidden}
+.mxwrap{position:relative;padding:8px;flex:1 1 auto;min-height:200px;display:flex;min-width:0;overflow:hidden}
+@media(max-width:1060px){
+  .mxwrap{flex:0 0 auto;aspect-ratio:1/1;max-height:58vh;min-height:260px}
+  svg.mx{width:auto;max-width:100%}
+}
 svg.mx{display:block;width:100%;height:100%;margin:0 auto;min-width:0;min-height:0}
 .dot{cursor:pointer;transition:opacity .12s}
 .dot:hover{opacity:.7}
@@ -119,7 +123,7 @@ svg.mx{display:block;width:100%;height:100%;margin:0 auto;min-width:0;min-height
 .sdlab::before{content:"";width:3px;height:13px;border-radius:2px;background:var(--ink-2);opacity:.5}
 .sdlab .n{font-size:10.5px;color:#fff;background:var(--ink-2);border-radius:99px;
   padding:0 6px;font-variant-numeric:tabular-nums}
-.sddots{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.sddots{display:flex;flex-wrap:wrap;gap:5px;align-items:center;min-width:0}
 .sdchip{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink);
   background:#fff;border:1px solid var(--line-2);border-radius:99px;padding:2px 10px 2px 7px;
   cursor:pointer;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
@@ -131,7 +135,10 @@ svg.mx{display:block;width:100%;height:100%;margin:0 auto;min-width:0;min-height
   padding:1px 7px;white-space:nowrap;flex:none;letter-spacing:.02em}
 .key{display:flex;gap:16px;padding:7px 11px;border-top:1px solid var(--line-3);font-size:11px;color:var(--ink-2);flex-wrap:wrap;flex:none}
 .key i{display:inline-block;width:10px;height:10px;border-radius:50%;vertical-align:-1px;margin-right:5px}
-.legend{display:grid;grid-template-columns:1fr 1fr;gap:2px 12px;padding:8px 11px;border-top:1px solid var(--line-3);flex:none;max-height:118px;overflow:auto}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:2px 12px;padding:8px 11px;border-top:1px solid var(--line-3);flex:none;max-height:118px;overflow:auto;min-width:0}
+.lg{min-width:0}
+.lg span:not(.sw):not(.n){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:1060px){.legend{grid-template-columns:1fr}}
 .legend:empty{display:none}
 .lg{display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;padding:1px 0}
 .lg.off{color:var(--ink-3)}
@@ -182,7 +189,7 @@ svg.mx{display:block;width:100%;height:100%;margin:0 auto;min-width:0;min-height
 .tr svg{pointer-events:none}
 
 .inline{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:6px 0 6px 11px}
-.inline input[type=text]{flex:1;min-width:130px}
+.inline input[type=text]{flex:1 1 130px;min-width:0}
 .inline .lab{font-size:11px;color:var(--ink-3)}
 .sl{display:flex;align-items:center;gap:5px}
 .sl input{width:78px}
@@ -246,6 +253,9 @@ svg.mx{display:block;width:100%;height:100%;margin:0 auto;min-width:0;min-height
 .rep{font-size:10px;color:var(--ink-2);border:1px solid var(--line-2);border-radius:99px;padding:0 7px;white-space:nowrap}
 .sortsel{border:1px solid var(--line-2);border-radius:var(--r);padding:2px 6px;
   font-size:11px;color:var(--ink-2);background:#fff}
+.foldall{font-size:10.5px;color:var(--ink-3);opacity:1;white-space:nowrap;padding:2px 7px;
+  border-radius:99px;border:1px solid transparent}
+.foldall:hover{color:var(--ink);border-color:var(--line-2)}
 .phx{gap:8px}
 .phx .tabs{margin-left:auto}
 .pcv{font-size:9px;color:var(--ink-3);width:11px;flex:none;cursor:pointer;transition:color .12s}
@@ -275,7 +285,7 @@ svg.mx{display:block;width:100%;height:100%;margin:0 auto;min-width:0;min-height
 .st:hover .stt{text-decoration:underline;text-decoration-color:var(--line-2);text-underline-offset:2px}
 .st.done:hover .stt{text-decoration:line-through}
 .stadd{padding-left:34px}
-.stadd input{flex:1;min-width:120px}
+.stadd input{flex:1 1 120px;min-width:0}
 .waitbtn{font-size:10px;color:var(--ink-3);border:1px solid var(--line-2);border-radius:99px;
   padding:0 6px;flex:none;opacity:0}
 .st:hover .waitbtn{opacity:1}
@@ -373,7 +383,7 @@ svg.mx{display:block;width:100%;height:100%;margin:0 auto;min-width:0;min-height
 .dbar{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;padding-top:9px;border-top:1px solid var(--line-3)}
 .dbar .tbtn{margin-left:auto}
 .dform{display:flex;flex-direction:column;gap:5px;padding:5px 0 7px}
-.dform input{max-width:280px}
+.dform input{max-width:280px;min-width:0;width:100%}
 .k{font-size:11px;color:var(--ink-3);letter-spacing:.06em}
 .path{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;margin:2px 0 9px;word-break:break-all}
 .empty{font-size:12px;color:var(--ink-3);padding:8px 0}
@@ -411,6 +421,50 @@ svg.mx{display:block;width:100%;height:100%;margin:0 auto;min-width:0;min-height
 #app{opacity:0;transition:opacity .55s ease}
 #app.in{opacity:1}
 @media(prefers-reduced-motion:reduce){#trace,#seed{animation:none}}
+
+#cfgBack{position:fixed;inset:0;background:rgba(60,60,64,.26);display:none;z-index:70}
+#cfgBack.on{display:block}
+#cfg{position:fixed;z-index:71;display:none;flex-direction:column;
+  width:min(420px,calc(100vw - 24px));max-height:min(76vh,620px);
+  background:#fff;border:1.5px solid var(--line);border-radius:8px;
+  box-shadow:0 12px 34px rgba(0,0,0,.18);overflow:hidden}
+#cfg.on{display:flex}
+.cfgh{display:flex;align-items:center;justify-content:space-between;padding:10px 12px 10px 16px;
+  border-bottom:1px solid var(--line-2);font-size:13px;font-weight:500;flex:none}
+.cfgx{display:grid;place-items:center;width:26px;height:26px;border-radius:5px;color:var(--ink-3)}
+.cfgx svg{width:15px;height:15px}
+.cfgx:hover{background:#f2f2f0;color:var(--ink)}
+.cfgb{padding:4px 16px 12px;overflow:auto;flex:1 1 auto;min-height:0}
+.cfgf{padding:9px 16px;border-top:1px solid var(--line-2);display:flex;justify-content:flex-end;flex:none}
+.cfgg{margin-top:12px}
+.cfggt{font-size:10px;letter-spacing:.14em;color:var(--ink-3);text-transform:uppercase;
+  padding-bottom:5px;border-bottom:1px solid var(--line-3);margin-bottom:4px}
+.cfgr{display:flex;align-items:center;gap:14px;padding:8px 0;border-bottom:1px solid #f4f4f2}
+.cfgr:last-child{border-bottom:none}
+.cfgl{flex:1;min-width:0}
+.cfgn{font-size:12.5px}
+.cfgh2{font-size:11px;color:var(--ink-3);margin-top:1px}
+.cfgtxt{width:130px;margin:0}
+.cfgr .sw{position:relative;width:36px;height:20px;flex:none;cursor:pointer;border-radius:99px}
+.cfgr .sw input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:2}
+.cfgr .sw > span{position:absolute;inset:0;width:auto;height:auto;background:#e2e2df;
+  border-radius:99px;transition:background .16s;opacity:1}
+.cfgr .sw > span::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;
+  background:#fff;border-radius:50%;transition:transform .16s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.cfgr .sw input:checked + span{background:var(--ink)}
+.cfgr .sw input:checked + span::after{transform:translateX(16px)}
+.cfgf{gap:8px;align-items:center}
+.cfgf .btn.sm.pri:disabled{opacity:.4;pointer-events:none}
+.cfgnote{margin-left:auto;font-size:10.5px;color:#9a5252;opacity:0;transition:opacity .15s;white-space:nowrap}
+#cfgReset{margin-right:0}
+.cfgask{position:absolute;inset:0;background:rgba(255,255,255,.82);display:none;
+  place-items:center;padding:18px;z-index:3}
+.cfgask.on{display:grid}
+.cfgaskbox{background:#fff;border:1.5px solid var(--line);border-radius:8px;padding:16px 18px;
+  box-shadow:0 6px 20px rgba(0,0,0,.12);max-width:330px}
+.cfgaskt{font-size:13px;font-weight:500;margin-bottom:5px}
+.cfgaskd{font-size:11.5px;color:var(--ink-2);margin-bottom:14px;line-height:1.6}
+.cfgaskb{display:flex;flex-direction:column;gap:7px}
 </style>
 </head>
 <body>
@@ -429,6 +483,32 @@ svg.mx{display:block;width:100%;height:100%;margin:0 auto;min-width:0;min-height
     <div class="lg-sum" id="lsum"></div>
     <button class="lg-btn" id="lbtn">はじめる</button>
     <div class="lg-load" id="lload"><span id="lmsg">読み込み中</span><span class="lg-bar" id="lbar"><i></i></span></div>
+  </div>
+</div>
+
+<div id="cfgBack"></div>
+<div id="cfg">
+  <div class="cfgh">
+    <span>設定</span>
+    <button class="cfgx" id="cfgClose" aria-label="閉じる" title="閉じる（Esc）">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <div class="cfgb" id="cfgBody"></div>
+  <div class="cfgf">
+    <button class="btn sm" id="cfgReset">初期値に戻す</button>
+    <span class="cfgnote" id="cfgNote">未保存の変更あり</span>
+    <button class="btn sm pri" id="cfgSave">保存済み</button>
+  </div>
+  <div class="cfgask" id="cfgAsk">
+    <div class="cfgaskbox">
+      <div class="cfgaskt">設定が変更されています</div>
+      <div class="cfgaskd">保存せずに閉じると、変更は破棄されます</div>
+      <div class="cfgaskb">
+        <button class="btn sm pri" id="askApply">設定を変更して戻る</button>
+        <button class="btn sm" id="askDiscard">設定を変更せずに戻る</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -456,6 +536,9 @@ svg.mx{display:block;width:100%;height:100%;margin:0 auto;min-width:0;min-height
     <button class="ib dev" id="fwd" title="1日進める">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6l6 6-6 6"/></svg></button>
     <span class="hsep"></span>
+    <button class="ib" id="cfgBtn" title="設定">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
+      <span class="lb">設定</span></button>
     <button class="ib key" id="lockBtn" title="施錠（Shift+Esc）">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
       <span class="lb">施錠</span></button>
@@ -494,7 +577,7 @@ svg.mx{display:block;width:100%;height:100%;margin:0 auto;min-width:0;min-height
             <button class="tab on" data-v="open">進行中</button>
             <button class="tab" data-v="archive">アーカイブ</button>
           </div>
-          <label class="cb ff"><input type="checkbox" id="sofChk"${stepOpenFirst?' checked':''}> 未完了を上に</label>
+          <button class="x foldall" id="foldAll" title="Altクリックでも一括">すべて閉じる</button>
           <select id="sortSel" class="sortsel">
             <option value="urgency">緊急度順</option>
             <option value="due">締切順</option>
@@ -520,16 +603,47 @@ svg.mx{display:block;width:100%;height:100%;margin:0 auto;min-width:0;min-height
 
 </div>
 <script>
-const HORIZON = 30, DAY = 86400000;
-const MIN_U = 12, NODUE_BASE = 25, NODUE_CAP = 85, NODUE_DAYS = 7;
+const DAY = 86400000;
+/* ---------- 設定 ---------- */
+const SETTINGS_DEF = [
+  {group:'表示', items:[
+    {key:'startCollapsed', type:'bool', label:'起動時に親タスクを閉じておく',
+     hint:'開いた直後は見出しだけを並べる', def:false},
+  ]},
+  {group:'動作', items:[
+    {key:'dayStart', type:'select', label:'1日の区切り', def:9,
+     hint:'この時刻を過ぎると翌日として扱う',
+     options:[[4,'4時'],[5,'5時'],[6,'6時'],[7,'7時'],[8,'8時'],[9,'9時'],[10,'10時'],[0,'0時']]},
+    {key:'lockAfter', type:'select', label:'自動で施錠するまで', def:15,
+     hint:'操作がないまま経過したら画面を隠す',
+     options:[[5,'5分'],[10,'10分'],[15,'15分'],[30,'30分'],[60,'60分'],[0,'しない']]},
+    {key:'horizon', type:'select', label:'緊急度の地平', def:30,
+     hint:'締切がこれ以上先なら緊急度は最小',
+     options:[[14,'14日'],[30,'30日'],[60,'60日'],[90,'90日']]},
+    {key:'nodueDays', type:'select', label:'期限なしが上りきる日数', def:7,
+     hint:'連絡日からこの日数で緊急度が最大に近づく',
+     options:[[3,'3日'],[5,'5日'],[7,'7日'],[14,'14日'],[30,'30日']]},
+  ]},
+];
+
+let settings = {};
+let cfgDraft = null;
+function defaultSettings(){
+  const o = {};
+  SETTINGS_DEF.forEach(g => g.items.forEach(i => o[i.key] = i.def));
+  return o;
+}
+function setting(k){ return settings[k] !== undefined ? settings[k] : defaultSettings()[k]; }
+
+
+const MIN_U = 12, NODUE_BASE = 25, NODUE_CAP = 85;
 const COLORS = ['#2F5D8C','#A8562F','#3F7A52','#6B5CA5','#B24A63','#A8862B','#2A7F87','#5B5B5E'];
 let offset = 0;
-const DAY_START = 9;
 
 const now = () => new Date(Date.now() + offset * DAY);
 const ymd = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-const today = () => { const d = now(); d.setHours(d.getHours() - DAY_START); return ymd(d); };
-const atDayStart = s => { const d = new Date(s + 'T00:00:00'); d.setHours(DAY_START); return d; };
+const today = () => { const d = now(); d.setHours(d.getHours() - setting('dayStart')); return ymd(d); };
+const atDayStart = s => { const d = new Date(s + 'T00:00:00'); d.setHours(setting('dayStart')); return d; };
 
 function copyText(t){
   return new Promise(res => {
@@ -694,7 +808,6 @@ let dirs = [];
 let view = 'open', hidden = new Set(), sel = null, selDir = null;
 let openAdd = null, addingParent = false, editK = null, editP = null;
 let sortMode = 'urgency';
-let stepOpenFirst = false;
 let openStep = null;
 let collapsed = new Set();
 let editStep = null;
@@ -717,7 +830,7 @@ function urgency(k){
   const R = daysLeft(k);
   let u;
   if (R !== null){
-    u = R <= 0 ? 100 : 100 * (1 - Math.log(1 + R) / Math.log(1 + HORIZON));
+    u = R <= 0 ? 100 : 100 * (1 - Math.log(1 + R) / Math.log(1 + setting('horizon')));
   } else {
     let e;
     if (k.waiting){
@@ -727,7 +840,7 @@ function urgency(k){
     } else {
       e = Math.max(0, elapsed(k));
     }
-    u = NODUE_BASE + (NODUE_CAP - NODUE_BASE) * Math.min(1, e / NODUE_DAYS);
+    u = NODUE_BASE + (NODUE_CAP - NODUE_BASE) * Math.min(1, e / setting('nodueDays'));
   }
   return Math.max(MIN_U, Math.min(100, u));
 }
@@ -897,7 +1010,6 @@ function drawNow(){
 }
 
 function sortSteps(list){
-  if (!stepOpenFirst) return list;
   return list.slice().sort((a,b) => (a.done - b.done));
 }
 function sortKids(list){
@@ -932,6 +1044,8 @@ function sortedParents(){
 }
 
 function drawTasks(){
+  const fa = document.getElementById('foldAll');
+  if (fa) fa.textContent = parents.length && parents.every(p => collapsed.has(p.id)) ? 'すべて開く' : 'すべて閉じる';
   const el = document.getElementById('taskList');
 
   if (view === 'archive'){
@@ -1972,6 +2086,79 @@ document.addEventListener('mouseout', e => {
   }
 });
 
+function drawSettings(){
+  const box = document.getElementById('cfgBody');
+  box.innerHTML = SETTINGS_DEF.map(g => `<div class="cfgg">
+    <div class="cfggt">${esc(g.group)}</div>
+    ${g.items.map(i => {
+      const v = cfgDraft[i.key];
+      let ctl;
+      if (i.type === 'bool')
+        ctl = `<label class="sw"><input type="checkbox" data-ck="${i.key}"${v?' checked':''}><span></span></label>`;
+      else if (i.type === 'select')
+        ctl = `<select class="sortsel" data-ck="${i.key}">${i.options.map(([ov,ol]) =>
+          `<option value="${ov}"${String(ov)===String(v)?' selected':''}>${esc(ol)}</option>`).join('')}</select>`;
+      else
+        ctl = `<input type="text" class="pathbox cfgtxt" data-ck="${i.key}" value="${esc(v)}">`;
+      return `<div class="cfgr"><div class="cfgl"><div class="cfgn">${esc(i.label)}</div>
+        ${i.hint ? `<div class="cfgh2">${esc(i.hint)}</div>` : ''}</div>${ctl}</div>`;
+    }).join('')}
+  </div>`).join('');
+
+  box.querySelectorAll('[data-ck]').forEach(el => el.addEventListener('change', () => {
+    const k = el.dataset.ck;
+    const def = SETTINGS_DEF.flatMap(g => g.items).find(i => i.key === k);
+    let v;
+    if (def.type === 'bool') v = el.checked;
+    else if (def.type === 'select') v = isNaN(+el.value) ? el.value : +el.value;
+    else v = el.value;
+    cfgDraft[k] = v;
+    markDirty();
+  }));
+}
+
+function cfgDirty(){
+  if (!cfgDraft) return false;
+  return SETTINGS_DEF.flatMap(g => g.items)
+    .some(i => String(cfgDraft[i.key]) !== String(setting(i.key)));
+}
+function markDirty(){
+  const d = cfgDirty();
+  const b = document.getElementById('cfgSave');
+  if (b){ b.disabled = !d; b.textContent = d ? '設定を保存' : '保存済み'; }
+  const n = document.getElementById('cfgNote');
+  if (n) n.style.opacity = d ? '1' : '0';
+}
+function applySettings(){
+  settings = Object.assign({}, settings, cfgDraft);
+  scheduleSave();
+  render();
+  markDirty();
+}
+function hardClose(){
+  cfgDraft = null;
+  document.getElementById('cfg').classList.remove('on');
+  document.getElementById('cfgBack').classList.remove('on');
+  document.getElementById('cfgAsk').classList.remove('on');
+}
+
+function openSettings(){
+  if (!cfgDraft) cfgDraft = Object.assign(defaultSettings(), settings);
+  drawSettings();
+  const pop = document.getElementById('cfg'), back = document.getElementById('cfgBack');
+  const btn = document.getElementById('cfgBtn');
+  pop.classList.add('on'); back.classList.add('on');
+  markDirty();
+  const r = btn.getBoundingClientRect();
+  pop.style.top = (r.bottom + 8) + 'px';
+  const w = pop.offsetWidth || 420;
+  pop.style.left = Math.max(12, Math.min(window.innerWidth - w - 12, r.right - w)) + 'px';
+}
+function closeSettings(){
+  if (cfgDirty()){ document.getElementById('cfgAsk').classList.add('on'); return; }
+  hardClose();
+}
+
 function fitHeader(){
   const hd = document.querySelector('header');
   if (!hd) return;
@@ -1988,7 +2175,16 @@ function fitHeader(){
 function fitHeights(){
   const top = document.getElementById('top');
   if (!top) return;
-  if (window.innerWidth <= 1060){ top.style.height = ''; return; }
+  const wrapEl = document.querySelector('.mxwrap');
+  if (window.innerWidth <= 1060){
+    top.style.height = '';
+    if (wrapEl){
+      const side = Math.min(wrapEl.clientWidth || 320, Math.max(240, window.innerHeight * 0.55));
+      wrapEl.style.height = side + 'px';
+    }
+    return;
+  }
+  if (wrapEl) wrapEl.style.height = '';
 
   const panel = top.querySelector('.panel');
   const wrap = document.querySelector('.mxwrap');
@@ -2010,8 +2206,10 @@ function render(){
   requestAnimationFrame(fitHeights);
 }
 
-document.getElementById('sofChk').addEventListener('change', e => {
-  stepOpenFirst = e.target.checked;
+window.collapseAllParents = () => { collapsed = new Set(parents.map(p => p.id)); drawTasks(); };
+document.getElementById('foldAll').addEventListener('click', () => {
+  const anyOpen = parents.some(p => !collapsed.has(p.id));
+  collapsed = anyOpen ? new Set(parents.map(p => p.id)) : new Set();
   drawTasks();
 });
 document.getElementById('sortSel').addEventListener('change', e => {
@@ -2026,6 +2224,27 @@ document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () =>
 document.getElementById('fwd').addEventListener('click', () => { offset++; render(); });
 document.getElementById('back').addEventListener('click', () => { offset--; render(); });
 window.addEventListener('resize', () => { fitHeader(); fitHeights(); });
+document.getElementById('cfgBtn').addEventListener('click', openSettings);
+document.getElementById('cfgClose').addEventListener('click', closeSettings);
+document.getElementById('cfgBack').addEventListener('click', closeSettings);
+document.getElementById('cfgSave').addEventListener('click', applySettings);
+document.getElementById('askApply').addEventListener('click', () => { applySettings(); hardClose(); });
+document.getElementById('askDiscard').addEventListener('click', hardClose);
+document.getElementById('cfgReset').addEventListener('click', () => {
+  cfgDraft = defaultSettings();
+  drawSettings(); markDirty();
+});
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (document.getElementById('cfgAsk').classList.contains('on')){
+    e.stopPropagation();
+    document.getElementById('cfgAsk').classList.remove('on');
+    return;
+  }
+  if (document.getElementById('cfg').classList.contains('on')){
+    e.stopPropagation(); closeSettings();
+  }
+}, true);
 
 
 /* ---------- 永続化：File System Access + localStorage ---------- */
@@ -2054,19 +2273,18 @@ async function idbGet(){
   }catch(e){ return null; }
 }
 
-function snapshot(){ lastSavedAt = Date.now(); return {v:1, savedAt:lastSavedAt, uid, parents, kids, dirs, sortMode, dirSort, dirView, stepOpenFirst, expanded:[...expanded]}; }
+function snapshot(){ lastSavedAt = Date.now(); return {v:1, savedAt:lastSavedAt, uid, parents, kids, dirs, sortMode, dirSort, dirView, settings, expanded:[...expanded]}; }
 function restore(d){
   if (!d) return false;
   parents = d.parents || []; kids = d.kids || []; dirs = d.dirs || [];
   kids.forEach(k => { if (!k.recv) k.recv = k.since || k.doneAt || today(); });
   uid = d.uid || 1;
   if (d.sortMode) sortMode = d.sortMode;
-  if (typeof d.stepOpenFirst === 'boolean') stepOpenFirst = d.stepOpenFirst;
   if (d.dirSort) dirSort = d.dirSort;
   if (d.dirView) dirView = d.dirView;
+  settings = Object.assign(defaultSettings(), d.settings || {});
   if (Array.isArray(d.expanded)) expanded = new Set(d.expanded);
   const ss = document.getElementById('sortSel'); if (ss) ss.value = sortMode;
-  const sf = document.getElementById('sofChk'); if (sf) sf.checked = stepOpenFirst;
   const ds = document.getElementById('dirSort'); if (ds) ds.value = dirSort;
   lastSavedAt = d.savedAt || 0;
   return true;
@@ -2234,7 +2452,6 @@ window.addEventListener('beforeunload', () => { if (saveTimer){ clearTimeout(sav
         btn = document.getElementById('lbtn'), sum = document.getElementById('lsum');
   let locked = true, idleTimer = null;
 
-  const LOCK_AFTER = 15;
 
   function summary(){
     const open = kids.filter(k => !k.done && !k.arch).length;
@@ -2307,7 +2524,9 @@ window.addEventListener('beforeunload', () => { if (saveTimer){ clearTimeout(sav
   function resetIdle(){
     if (locked) return;
     clearTimeout(idleTimer);
-    idleTimer = setTimeout(lock, LOCK_AFTER * 60000);
+    const m = setting('lockAfter');
+    if (!m) return;
+    idleTimer = setTimeout(lock, m * 60000);
   }
 
   btn.addEventListener('click', enter);
