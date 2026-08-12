@@ -226,11 +226,19 @@ svg.mx{display:block;width:100%;height:100%}
 .dn .en{font-size:12px;color:var(--ink-2);font-family:ui-monospace,Menlo,monospace;letter-spacing:-.01em;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .dn.sel .en{color:var(--ink);font-weight:500}
-.dn .x{font-size:10.5px;color:var(--ink-3);opacity:0;white-space:nowrap;padding:0 3px;border-radius:3px}
+.dn .x{font-size:10.5px;color:var(--ink-3);opacity:0;white-space:nowrap;padding:1px 4px;border-radius:3px}
+.dn .ax{opacity:.35}
+.dn:hover .ax{opacity:1}
+.axi{display:none;font-size:12px;line-height:1}
+@media(max-width:1120px){
+  .dn .axl{display:none}
+  .dn .axi{display:inline}
+  .dn .ax{padding:1px 5px;border:1px solid var(--line-3);border-radius:4px}
+}
 .dn:hover .x{opacity:1}
 .dn .x:hover{color:var(--ink);background:#eceae6}
 .dn .x[data-af]{margin-left:auto}
-@media(max-width:1000px){.dn .x[data-af],.dn .x[data-ae]{display:none}}
+
 .dn.folder .cnum{margin-right:2px}
 .dn .x{flex:none}
 .dn.entry .tr{margin-left:auto}
@@ -1491,8 +1499,8 @@ function dirRow(d){
     <span class="${isF ? 'fn' : 'en'}${!isF && isUrl(d.path) ? ' link' : ''}">${d.name}${!isF && isUrl(d.path) ? '<span class="lmk">↗</span>' : ''}</span>
     ${isF ? `<span class="cnum">${n || ''}</span>` : ''}
     ${!isF && d.path ? `<span class="ppeek">${esc(d.path)}</span>` : ''}
-    ${isF ? `<button class="x" data-af="${d.id}">＋フォルダ</button>
-    <button class="x" data-ae="${d.id}">＋パス</button>` : ''}
+    ${isF ? `<button class="x ax" data-af="${d.id}" title="フォルダを追加"><span class="axi">▤</span><span class="axl">＋フォルダ</span></button>
+    <button class="x ax" data-ae="${d.id}" title="パスを追加"><span class="axi">＋</span><span class="axl">＋パス</span></button>` : ''}
     <button class="tr" data-del="${d.id}" title="ゴミ箱へ">${TRASH}</button>
     ${isF ? '<span class="cv">›</span>' : ''}
   </div>`;
@@ -1532,8 +1540,8 @@ function treeRow(d, pre, last){
     ${dirColor(d) ? `<span class="dcol" style="background:${dirColor(d)}"></span>` : '<span class="dcol none"></span>'}<span class="ficon"></span>
     <span class="fn">${esc(d.name)}</span>
     <span class="cnum">${list.length || ''}</span>
-    <button class="x" data-af="${d.id}">＋フォルダ</button>
-    <button class="x" data-ae="${d.id}">＋パス</button>
+    <button class="x ax" data-af="${d.id}" title="フォルダを追加"><span class="axi">▤</span><span class="axl">＋フォルダ</span></button>
+    <button class="x ax" data-ae="${d.id}" title="パスを追加"><span class="axi">＋</span><span class="axl">＋パス</span></button>
     <button class="tr" data-del="${d.id}" title="ゴミ箱へ">${TRASH}</button></div>`;
   if (open){
     const sub = pre.concat([!last]);
