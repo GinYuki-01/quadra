@@ -284,6 +284,11 @@ svg.mx{display:block;width:100%;height:100%;margin:0 auto;min-width:0;min-height
 .stt{cursor:pointer}
 .st:hover .stt{text-decoration:underline;text-decoration-color:var(--line-2);text-underline-offset:2px}
 .st.done:hover .stt{text-decoration:line-through}
+.stmore{display:flex;align-items:center;gap:7px;padding:2px 0 3px 34px;font-size:10.5px;
+  color:var(--ink-3);cursor:pointer;user-select:none}
+.stmore:hover{color:var(--ink-2)}
+.stmore .dots{letter-spacing:1px;font-size:9px;color:var(--line-2)}
+.stmore:hover .dots{color:var(--ink-3)}
 .stadd{padding-left:34px}
 .stadd input{flex:1 1 120px;min-width:0}
 .waitbtn{font-size:10px;color:var(--ink-3);border:1px solid var(--line-2);border-radius:99px;
@@ -811,6 +816,7 @@ let sortMode = 'urgency';
 let openStep = null;
 let collapsed = new Set();
 let editStep = null;
+let stepsOpen = new Set();
 let adding = null;
 let dirSort = 'name';
 let folderFirst = true, dirEdit = null, cwd = null;
@@ -1095,7 +1101,13 @@ function drawTasks(){
         <button class="tr" data-delk="${k.id}" title="削除">${TRASH}</button>
         <span class="u">${k.done ? '' : label(k)}</span></div>`;
       if (!k.done && (k.steps||[]).length){
-        h += sortSteps(k.steps||[]).map(st => `<div class="st${st.done?' done':''}" data-stid="${st.id}">
+        const all = sortSteps(k.steps);
+        const open = all.filter(x => !x.done), done = all.filter(x => x.done);
+        const expand = stepsOpen.has(k.id);
+        const LIMIT = 5;
+        const hidden = Math.max(0, done.length - LIMIT);
+        const shown = expand ? done : done.slice(0, LIMIT);
+        const row = st => `<div class="st${st.done?' done':''}" data-stid="${st.id}">
           <span class="stbox${st.done?' on':''}" data-sttog="${st.id}"></span>
           ${st.waiting && !st.done ? `<span class="wm sm" style="border-color:${p.color}"></span>` : ''}
           ${editStep === st.id
@@ -1103,7 +1115,14 @@ function drawTasks(){
             : `<span class="stt" data-stedit="${st.id}" title="クリックで編集">${esc(st.text)}</span>`}
           ${st.done ? '' : `<button class="waitbtn${st.waiting?' on':''}" data-stwait="${st.id}">待ち</button>`}
           ${st.waiting && !st.done ? `<span class="u">${stepLabel(st)}</span>` : ''}
-          <button class="tr" data-stdel="${st.id}">${TRASH}</button></div>`).join('');
+          <button class="tr" data-stdel="${st.id}">${TRASH}</button></div>`;
+        h += open.map(row).join('');
+        h += shown.map(row).join('');
+        if (hidden > 0 || (expand && done.length > LIMIT)){
+          h += `<div class="stmore" data-stmore="${k.id}">${
+            expand ? '<span class="dots">•••</span>古い経過を畳む'
+                   : `<span class="dots">•••</span>ほかに ${hidden} 件`}</div>`;
+        }
       }
       if (openStep === k.id){
         h += `<div class="inline stadd">
@@ -1222,6 +1241,12 @@ function drawTasks(){
       st.since = st.waiting ? (st.since || today()) : null;
     }));
     render();
+  }));
+  el.querySelectorAll('[data-stmore]').forEach(n => n.addEventListener('click', e => {
+    e.stopPropagation();
+    const id = n.dataset.stmore;
+    stepsOpen.has(id) ? stepsOpen.delete(id) : stepsOpen.add(id);
+    drawTasks();
   }));
   el.querySelectorAll('[data-stedit]').forEach(n => n.addEventListener('click', e => {
     e.stopPropagation();
