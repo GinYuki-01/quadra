@@ -2206,7 +2206,10 @@ function render(){
   requestAnimationFrame(fitHeights);
 }
 
-window.collapseAllParents = () => { collapsed = new Set(parents.map(p => p.id)); drawTasks(); };
+window.applyStartupSettings = () => {
+  collapsed = setting('startCollapsed') ? new Set(parents.map(p => p.id)) : new Set();
+  drawTasks();
+};
 document.getElementById('foldAll').addEventListener('click', () => {
   const anyOpen = parents.some(p => !collapsed.has(p.id));
   collapsed = anyOpen ? new Set(parents.map(p => p.id)) : new Set();
@@ -2443,6 +2446,7 @@ window.addEventListener('beforeunload', () => { if (saveTimer){ clearTimeout(sav
 (async () => {
   await initStore();
   fitHeader(); fitHeights(); drawDirs(); render();
+  if (window.applyStartupSettings) window.applyStartupSettings();
   if (window.refreshSummary) window.refreshSummary();
 })();
 
@@ -2496,6 +2500,7 @@ window.addEventListener('beforeunload', () => { if (saveTimer){ clearTimeout(sav
     }
 
     say('画面を組み立て中');
+    if (window.applyStartupSettings) window.applyStartupSettings();
     requestAnimationFrame(() => bar.classList.add('run'));
     await wait(700);
 
