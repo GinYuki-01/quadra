@@ -2130,8 +2130,12 @@ function markDirty(){
   if (n) n.style.opacity = d ? '1' : '0';
 }
 function applySettings(){
+  const before = setting('startCollapsed');
   settings = Object.assign({}, settings, cfgDraft);
   scheduleSave();
+  if (setting('startCollapsed') !== before && window.applyStartupSettings){
+    window.applyStartupSettings();
+  }
   render();
   markDirty();
 }
