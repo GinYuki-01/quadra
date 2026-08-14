@@ -1659,6 +1659,7 @@ function purgeTrash(){
 function trashDays(d){
   return Math.max(0, 30 - Math.floor((now() - atDayStart(d.deletedAt)) / DAY));
 }
+function allFolders(){ return dirs.filter(d => d.type === 'folder' && !d.deletedAt); }
 function dirReindex(){
   const groups = new Set(dirs.map(d => d.p));
   groups.forEach(g => dirChildren(g).forEach((d,i) => d.order = i));
@@ -1763,6 +1764,9 @@ function drawDirs(){
       <button class="vt${dirView==='explorer'?' on':''}" data-view="explorer">階層移動</button>
       <button class="vt${dirView==='tree'?' on':''}" data-view="tree">ツリー</button>
     </div>
+    ${dirView === 'tree' ? `<button class="x foldall" id="dirFoldAll" title="Altクリックでも一括">${
+      allFolders().length && allFolders().every(f => expanded.has(f.id)) ? 'すべて閉じる' : 'すべて開く'
+    }</button>` : ''}
     <label class="cb ff"><input type="checkbox" id="ffChk"${folderFirst?' checked':''}> フォルダを上に</label>
     <select id="dirSort" class="sortsel">
       <option value="name"${dirSort==='name'?' selected':''}>名前順</option>
@@ -1874,6 +1878,13 @@ function bindDirs(tree){
     drawDirs();
   }));
 
+  const dfa = document.getElementById('dirFoldAll');
+  if (dfa) dfa.addEventListener('click', () => {
+    const all = allFolders();
+    const allOpen = all.length && all.every(f => expanded.has(f.id));
+    expanded = allOpen ? new Set() : new Set(all.map(f => f.id));
+    drawDirs();
+  });
   const ff = document.getElementById('ffChk');
   if (ff) ff.addEventListener('change', e => { folderFirst = e.target.checked; drawDirs(); });
   const ds = document.getElementById('dirSort');
