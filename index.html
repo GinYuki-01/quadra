@@ -149,7 +149,14 @@ svg.mx{display:block;width:100%;height:100%;margin:0 auto;min-width:0;min-height
 .right{display:flex;flex-direction:column;gap:12px;min-height:0}
 #nowP{flex:none}
 #taskP{flex:1;min-height:120px}
-#waitP{flex:none}
+#waitP{flex:none;min-height:0}
+#waitP .pb{max-height:96px;overflow-y:auto}
+#waitP.wexp{flex:0 1 auto}
+#waitP.wexp .pb{max-height:none;overflow-y:visible}
+#waitP .pb::-webkit-scrollbar{width:6px}
+#waitP .pb::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:3px}
+#waitP .pb::-webkit-scrollbar-track{background:transparent}
+.ph .foldall{margin-left:auto;margin-right:8px}
 
 .now-i{display:flex;align-items:center;gap:9px;padding:4px 0 4px 9px;border-left:3px solid var(--line-2)}
 .now-t{font-size:13px;font-weight:500}
@@ -601,7 +608,9 @@ svg.mx{display:block;width:100%;height:100%;margin:0 auto;min-width:0;min-height
       </div>
 
       <div class="panel" id="waitP">
-        <div class="ph"><span class="pt">waiting</span><span class="cnt" id="waitCount"></span></div>
+        <div class="ph"><span class="pt">waiting</span>
+          <button class="x foldall" id="waitToggle">全体表示</button>
+          <span class="cnt" id="waitCount"></span></div>
         <div class="pb" id="waitList"></div>
       </div>
     </div>
@@ -834,6 +843,7 @@ let openStep = null;
 let collapsed = new Set();
 let editStep = null;
 let stepsOpen = new Set();
+let waitExpand = false;
 let adding = null;
 let dirSort = 'name';
 let folderFirst = true, dirEdit = null, cwd = null;
@@ -1620,6 +1630,13 @@ function drawWait(){
       l.push({c:colorOf(k), t:st.text, sub:k.title, e:stepLabel(st), u:urgency(k)})));
   l.sort((a,b) => b.u - a.u);
   document.getElementById('waitCount').textContent = l.length || '';
+  const wp = document.getElementById('waitP');
+  const tg = document.getElementById('waitToggle');
+  if (tg){
+    tg.style.display = l.length > 3 ? '' : 'none';
+    tg.textContent = waitExpand ? '折りたたむ' : `全体表示 ${l.length}`;
+  }
+  if (wp) wp.classList.toggle('wexp', waitExpand);
   document.getElementById('waitList').innerHTML = l.length ? l.map(x =>
     `<div class="wt"><span class="d" style="border-color:${x.c}"></span>
       <span class="t">${x.sub ? `<span class="sub">${esc(x.sub)} › </span>` : ''}${esc(x.t)}</span>
@@ -2292,6 +2309,11 @@ window.applyStartupSettings = () => {
   collapsed = setting('startCollapsed') ? new Set(parents.map(p => p.id)) : new Set();
   drawTasks();
 };
+document.getElementById('waitToggle').addEventListener('click', () => {
+  waitExpand = !waitExpand;
+  drawWait();
+  requestAnimationFrame(fitHeights);
+});
 document.getElementById('foldAll').addEventListener('click', () => {
   const anyOpen = parents.some(p => !collapsed.has(p.id));
   collapsed = anyOpen ? new Set(parents.map(p => p.id)) : new Set();
