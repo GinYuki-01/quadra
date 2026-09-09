@@ -1,0 +1,16 @@
+name: check
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  syntax:
+    name: syntax
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: index.html と manifest.json の検査
+        run: node .github/check.mjs
