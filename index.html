@@ -1870,11 +1870,9 @@ function bindDirs(tree){
     cwd = v === '' ? null : v;
     selDir = null; adding = null; drawDirs();
   }));
-  tree.querySelectorAll('.dn.entry').forEach(n => n.addEventListener('click', async e => {
+  tree.querySelectorAll('.dn.entry').forEach(n => n.addEventListener('click', e => {
     if (e.target.closest('button')) return;
     selDir = n.dataset.did; drawDirs();
-    const d = dirs.find(x => x.id === selDir);
-    if (d && d.path) flashCopy(await copyText(d.path));
   }));
   tree.querySelectorAll('.dn.folder[data-did]').forEach(n => n.addEventListener('dblclick', () => {
     cwd = n.dataset.did; selDir = null; drawDirs();
@@ -2103,19 +2101,20 @@ function drawDirDetail(){
   const pb = document.getElementById('pathBox');
   if (pb) pb.addEventListener('focus', () => pb.select());
   const cp = document.getElementById('cp');
-  if (cp) cp.addEventListener('click', async () => flashCopy(await copyText(d.path)));
-}
-
-let cpTimer = null;
-function flashCopy(ok){
-  const d = dirs.find(x => x.id === selDir);
-  const cp = document.getElementById('cp'), pb = document.getElementById('pathBox');
-  if (!cp || !d) return;
-  const base = isUrl(d.path) ? 'URLをコピー' : 'パスをコピー';
-  cp.textContent = ok ? 'コピーしました' : '上の欄を選択してコピー';
-  if (!ok && pb){ pb.focus(); pb.select(); }
-  clearTimeout(cpTimer);
-  cpTimer = setTimeout(() => { cp.textContent = base; }, 1800);
+  if (cp){
+    // 押すと「コピーしました」。カーソルがボタンの上にある間は保ち、離れたら元の文言に戻す
+    const base = cp.textContent;
+    let timer = null;
+    cp.addEventListener('click', async () => {
+      clearTimeout(timer);
+      const ok = await copyText(d.path);
+      cp.textContent = ok ? 'コピーしました' : '上の欄を選択してコピー';
+      if (!ok && pb){ pb.focus(); pb.select(); }
+      // キーボード操作などでカーソルが上にない時は、少し待って戻す
+      if (!cp.matches(':hover')) timer = setTimeout(() => { cp.textContent = base; }, 1800);
+    });
+    cp.addEventListener('mouseleave', () => { clearTimeout(timer); cp.textContent = base; });
+  }
 }
 
 
