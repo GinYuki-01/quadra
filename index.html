@@ -2297,19 +2297,31 @@ function fitHeights(){
   }
   if (wrapEl) wrapEl.style.height = '';
 
+  // 上段の高さは左列の幅から決める。画面の高さでは縮めない（足りなければページをスクロール）
   const panel = top.querySelector('.panel');
-  const wrap = document.querySelector('.mxwrap');
-  const cap = Math.max(420, window.innerHeight - 96);
-
-  let h;
-  if (panel && wrap){
-    const chrome = panel.offsetHeight - wrap.offsetHeight;
+  let h = 760;
+  if (panel && wrapEl){
+    const chrome = [...panel.children].filter(c => c !== wrapEl)
+      .reduce((s, c) => s + c.offsetHeight, 0) + (panel.offsetHeight - panel.clientHeight);
     const side = Math.max(240, panel.clientWidth - 20);
-    h = Math.min(cap, Math.max(430, side + chrome));
-  } else {
-    h = Math.min(cap, 760);
+    h = Math.max(430, side + chrome);
   }
-  top.style.height = h + 'px';
+  // 右列（now・tasks・waiting）が収まらない高さにはしない。はみ出すと下の欄に重なる
+  h = Math.max(h, rightMinHeight());
+  top.style.height = Math.ceil(h) + 'px';
+}
+function rightMinHeight(){
+  const r = document.querySelector('.top > .right');
+  if (!r) return 0;
+  const gap = parseFloat(getComputedStyle(r).rowGap) || 0;
+  let sum = gap * Math.max(0, r.children.length - 1);
+  [...r.children].forEach(p => {
+    const min = parseFloat(getComputedStyle(p).minHeight) || 0;
+    const natural = p.id === 'taskP' ? 0
+      : Math.max(p.offsetHeight, p.scrollHeight + (p.offsetHeight - p.clientHeight));
+    sum += Math.max(min, natural);
+  });
+  return sum;
 }
 function render(){
   cycleCheck(); scheduleSave(); drawClock(); drawLegend(); drawMatrix();
