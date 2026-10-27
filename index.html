@@ -179,7 +179,7 @@ svg.mx{display:block;width:100%;height:100%;margin:0 auto;min-width:0;min-height
 .lg .n{margin-left:auto;font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
 
 .left,.right{display:flex;flex-direction:column;gap:12px;min-height:0}
-#nowP{flex:1 1 auto;min-height:240px}
+#nowP{flex:1 1 auto;min-height:0}
 .face{display:flex;flex-direction:column;gap:12px;flex:1 1 auto;min-height:0}
 .face[hidden]{display:none}
 #mxP{flex:1 1 auto}
@@ -531,7 +531,7 @@ body{background:var(--bg)}
 #nowP .ph{justify-content:flex-start;gap:8px}
 .phnote{margin-left:auto;font-size:10.5px;color:var(--ink-3)}
 .nowzone{flex:1 1 auto;display:flex;flex-direction:column;gap:8px;transition:background .15s, box-shadow .15s}
-.nowzone .empty{flex:1;display:grid;place-items:center;text-align:center;border:1.5px dashed var(--line-2);
+.nowzone .empty{flex:1;min-height:110px;display:grid;place-items:center;text-align:center;border:1.5px dashed var(--line-2);
   border-radius:var(--r);padding:22px 12px;transition:border-color .15s, color .15s}
 body.kdrag .nowzone{background:var(--accent-soft)}
 body.kdrag .nowzone .empty{border-color:var(--accent);color:var(--accent)}
@@ -1448,6 +1448,7 @@ function drawTasks(){
     : `<button class="btn sm" id="pnew" style="margin-top:2px">＋ 親タスク</button>`;
 
   el.innerHTML = h;
+  requestAnimationFrame(fitHeights);
 
   el.querySelectorAll('[data-p]').forEach(n => n.addEventListener('click', e => {
     e.stopPropagation();
@@ -2624,16 +2625,37 @@ function fitHeights(){
     }
     return;
   }
-  // 上段は画面の高さに合わせ、一覧は欄の中でスクロール。マトリクス面では正方形が収まる高さまで伸ばす
-  let h = Math.max(560, window.innerHeight - 96);
+  // 上段は中身の量に合わせる。一覧が長いときは上限（画面の高さ − 余白）で止めて欄の中でスクロール
+  const cap = Math.max(420, window.innerHeight - 160);
+  const nowP = document.getElementById('nowP'), nowList = document.getElementById('nowList');
+  const taskP = document.getElementById('taskP'), taskList = document.getElementById('taskList');
+  const left = top.querySelector('.left');
+  const gap = parseFloat(getComputedStyle(left).rowGap) || 0;
+  // いったん高さを外して中身の自然な高さを測る（スクロール位置は戻す）
+  const keep = {list:taskList.scrollTop, now:nowList.scrollTop, page:window.scrollY};
+  top.style.height = '';
+  let h = 360;
   if (wrapEl) wrapEl.style.height = '';
   if (mxOn && wrapEl){
+    // マトリクス面は正方形が収まる高さ
     const mxP = document.getElementById('mxP');
     const side = Math.max(240, mxP.clientWidth - 20);
     const chrome = [...mxP.children].filter(c => c !== wrapEl).reduce((sum, c) => sum + c.offsetHeight, 0) + 3;
     h = Math.max(h, side + chrome);
+  } else {
+    const items = [...nowList.children].reduce((sum, c) => sum + c.offsetHeight, 0)
+      + Math.max(0, nowList.children.length - 1) * (parseFloat(getComputedStyle(nowList).rowGap) || 0)
+      + parseFloat(getComputedStyle(nowList).paddingTop) + parseFloat(getComputedStyle(nowList).paddingBottom);
+    const nowH = (nowP.offsetHeight - nowList.offsetHeight) + Math.max(items, 150);
+    const others = [...document.getElementById('faceNow').children].filter(c => c !== nowP)
+      .reduce((sum, c) => sum + c.offsetHeight + gap, 0);
+    h = Math.max(h, Math.min(nowH + others, cap));
   }
+  const taskH = (taskP.offsetHeight - taskList.clientHeight) + taskList.scrollHeight;
+  h = Math.max(h, Math.min(taskH, cap));
   top.style.height = Math.ceil(h) + 'px';
+  taskList.scrollTop = keep.list; nowList.scrollTop = keep.now;
+  if (window.scrollY !== keep.page) window.scrollTo(0, keep.page);
 }
 
 /* ---- 左パネルの裏返し：now ⇄ マトリクス ---- */
