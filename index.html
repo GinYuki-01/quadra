@@ -530,7 +530,7 @@ svg.mx{display:block;width:100%;height:100%;margin:0 auto;min-width:0;min-height
 body{background:var(--bg)}
 #nowP .ph{justify-content:flex-start;gap:8px}
 .phnote{margin-left:auto;font-size:10.5px;color:var(--ink-3)}
-.nowzone{flex:1 1 auto;display:flex;flex-direction:column;gap:8px;transition:background .15s, box-shadow .15s}
+.nowzone{flex:1 1 auto;display:flex;flex-direction:column;gap:5px;transition:background .15s, box-shadow .15s}
 .nowzone .empty{flex:1;min-height:110px;display:grid;place-items:center;text-align:center;border:1.5px dashed var(--line-2);
   border-radius:var(--r);padding:22px 12px;transition:border-color .15s, color .15s}
 body.kdrag .nowzone{background:var(--accent-soft)}
@@ -538,17 +538,20 @@ body.kdrag .nowzone .empty{border-color:var(--accent);color:var(--accent)}
 @media(max-width:1060px){#nowP{min-height:0}.nowzone .empty{padding:14px 12px}}
 .nowzone.over{box-shadow:inset 0 0 0 2px var(--accent)}
 .par.bover{box-shadow:inset 0 0 0 1.5px var(--accent);border-radius:4px}
-.now-c{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:3px 10px;align-items:start;
-  border:1px solid var(--line-2);border-left:4px solid var(--c);border-radius:var(--r);padding:9px 11px;
+.now-c{position:relative;display:flex;align-items:center;gap:9px;
+  border:1px solid var(--line-2);border-left:4px solid var(--c);border-radius:var(--r);padding:5px 10px;
   background:var(--bg);cursor:grab;transition:box-shadow .15s}
 .now-c:hover{box-shadow:0 2px 8px var(--shadow)}
 .now-c.step{border-left-style:dashed}
-.now-c .box{width:15px;height:15px;margin-top:3px}
-.now-c .now-t{font-size:14px;line-height:1.45;overflow-wrap:anywhere}
-.now-c .now-m{grid-column:2;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.now-c .box{width:15px;height:15px;flex:none}
+.now-c .now-t{flex:1 1 auto;min-width:0;font-size:13.5px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.now-c .now-m{flex:0 4 auto;min-width:0;max-width:50%;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.now-c .now-m .nmeta{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.now-c .now-m .pill,.now-c .nsub{flex:none}
 .now-c .nsub{font-size:10px;border:1px solid var(--line-2);border-radius:99px;padding:0 6px}
 .now-c .pill{margin-left:0}
-.now-c .nback{grid-column:3;grid-row:1;font-size:10.5px;color:var(--ink-3);border-radius:99px;padding:1px 7px;opacity:0;white-space:nowrap}
+.now-c .nback{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:10.5px;color:var(--ink-3);
+  background:var(--bg);border:1px solid var(--line-2);border-radius:99px;padding:1px 7px;opacity:0;white-space:nowrap}
 .now-c:hover .nback,.now-c .nback:focus-visible{opacity:1}
 .now-c .nback:hover{color:var(--ink);background:var(--bg-3)}
 @media(hover:none){.now-c .nback{opacity:1}}
@@ -1234,7 +1237,7 @@ function drawNow(){
       <span class="box" data-nowdone="${x.id}" role="checkbox" aria-checked="false" tabindex="0" title="完了にする"></span>
       <div class="now-t">${esc(x.title)}</div>
       <button class="nback" data-nback="${x.id}" title="作業中から外す">一覧へ戻す</button>
-      <div class="now-m">${x.st ? '<span class="nsub">経過</span>' : ''}${esc(x.meta)}${x.st ? '' : `<span class="pill${u>75?' hot':''}">${label(x.k)}</span>`}</div></div>`;
+      <div class="now-m">${x.st ? '<span class="nsub">経過</span>' : ''}<span class="nmeta">${esc(x.meta)}</span>${x.st ? '' : `<span class="pill${u>75?' hot':''}">${label(x.k)}</span>`}</div></div>`;
   }).join('') : '<div class="empty"><span>一覧から子タスクや経過をドラッグ<br>（「now」ボタンでも追加できる）</span></div>';
 }
 
