@@ -526,43 +526,33 @@ body{background:var(--bg)}
 .nowzone{flex:1 1 auto;display:flex;flex-direction:column;gap:8px;transition:background .15s, box-shadow .15s}
 .nowzone .empty{flex:1;display:grid;place-items:center;text-align:center;border:1.5px dashed var(--line-2);
   border-radius:var(--r);padding:22px 12px;transition:border-color .15s, color .15s}
-.nowzone .empty .arw{display:inline-block;margin-right:5px;animation:nudge 1.6s ease-in-out infinite}
-@keyframes nudge{50%{transform:translateX(-6px)}}
-@media(max-width:1060px){#nowP{min-height:0}.nowzone .empty{padding:14px 12px}.nowzone .empty .arw{display:none}}
-body.kdrag .nowzone{background-image:repeating-linear-gradient(-45deg,transparent 0 10px,var(--accent-soft) 10px 20px);
-  background-size:28px 28px;animation:stripes .9s linear infinite}
+body.kdrag .nowzone{background:var(--accent-soft)}
 body.kdrag .nowzone .empty{border-color:var(--accent);color:var(--accent)}
-@keyframes stripes{to{background-position:28px 0}}
-.nowzone.over,.par.bover{box-shadow:inset 0 0 0 1.5px var(--accent);animation:breathe 1s ease-in-out infinite}
-@keyframes breathe{50%{box-shadow:inset 0 0 0 3px var(--accent)}}
+@media(max-width:1060px){#nowP{min-height:0}.nowzone .empty{padding:14px 12px}}
+.nowzone.over{box-shadow:inset 0 0 0 2px var(--accent)}
+.par.bover{box-shadow:inset 0 0 0 1.5px var(--accent);border-radius:4px}
 .now-c{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:3px 10px;align-items:start;
   border:1px solid var(--line-2);border-left:4px solid var(--c);border-radius:var(--r);padding:9px 11px;
-  background:var(--bg);cursor:grab;transition:transform .15s, box-shadow .15s}
-.now-c:hover{transform:translateY(-1px);box-shadow:0 3px 10px var(--shadow)}
+  background:var(--bg);cursor:grab;transition:box-shadow .15s}
+.now-c:hover{box-shadow:0 2px 8px var(--shadow)}
+.now-c.step{border-left-style:dashed}
 .now-c .box{width:15px;height:15px;margin-top:3px}
 .now-c .now-t{font-size:14px;line-height:1.45;overflow-wrap:anywhere}
 .now-c .now-m{grid-column:2;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.now-c .nsub{font-size:10px;border:1px solid var(--line-2);border-radius:99px;padding:0 6px}
 .now-c .pill{margin-left:0}
 .now-c .nback{grid-column:3;grid-row:1;font-size:10.5px;color:var(--ink-3);border-radius:99px;padding:1px 7px;opacity:0;white-space:nowrap}
 .now-c:hover .nback,.now-c .nback:focus-visible{opacity:1}
 .now-c .nback:hover{color:var(--ink);background:var(--bg-3)}
 @media(hover:none){.now-c .nback{opacity:1}}
-.now-c.land{animation:land .6s ease-out}
-@keyframes land{40%{box-shadow:0 0 0 6px var(--accent-soft)}}
-.now-c.leaving{opacity:.45;transform:scale(.98)}
 .now-c.leaving .now-t{text-decoration:line-through;color:var(--ink-3)}
-.now-c .box.pop{animation:boxpop .35s cubic-bezier(.3,1.8,.5,1)}
-@keyframes boxpop{40%{transform:scale(1.35)}}
-.ch.isnow .ch-t{color:var(--accent)}
-.ch.flash{animation:flash .9s ease-out}
+.ch.isnow .ch-t,.st.isnow .stt{color:var(--accent)}
+.st[draggable]{cursor:grab}
+.st .nowbtn{opacity:0}
+.st:hover .nowbtn,.st .nowbtn.on{opacity:1}
+.ch.flash,.st.flash{animation:flash .6s ease-out}
 @keyframes flash{0%{background:var(--accent-soft)}100%{background:transparent}}
-.kghost{position:fixed;left:0;top:0;z-index:200;pointer-events:none;background:var(--bg);border:1.5px solid var(--accent);
-  border-radius:var(--r);padding:5px 10px;font-size:12.5px;box-shadow:0 8px 24px var(--shadow);max-width:280px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ch.dragging,.now-c.dragging{opacity:.35}
-.spark{position:fixed;width:7px;height:7px;border-radius:2px;pointer-events:none;z-index:200}
-.cnt.bump{display:inline-block;animation:bump .4s cubic-bezier(.3,1.8,.5,1)}
-@keyframes bump{40%{transform:scale(1.6);color:var(--accent)}}
+.ch.dragging,.st.dragging,.now-c.dragging{opacity:.4}
 
 /* ---- ざっくり期限 ---- */
 .duek{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px}
@@ -581,7 +571,7 @@ body.kdrag .nowzone .empty{border-color:var(--accent);color:var(--accent)}
 .ch .ppar{font-size:10.5px;color:var(--ink-3);flex:none;max-width:24%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 body.themefade,body.themefade *{transition:background-color .35s, color .35s, border-color .35s !important}
 @media(prefers-reduced-motion:reduce){
-  .nowzone,.nowzone *,.now-c,.ch,.cnt,.par{animation:none !important;transition:none !important}
+  .now-c,.ch,.st{animation:none !important;transition:none !important}
 }
 </style>
 </head>
@@ -1202,16 +1192,21 @@ function drawSomeday(){
 }
 
 function drawNow(){
-  const l = kids.filter(k => k.now && !k.done && !k.arch);
-  document.getElementById('nowCount').textContent = l.length || '';
-  document.getElementById('nowList').innerHTML = l.length ? l.map(k => {
-    const u = urgency(k);
-    return `<div class="now-c" data-nid="${k.id}" draggable="true" style="--c:${colorOf(k)}">
-      <span class="box" data-nowdone="${k.id}" role="checkbox" aria-checked="false" tabindex="0" title="完了にする"></span>
-      <div class="now-t">${esc(k.title)}</div>
-      <button class="nback" data-nback="${k.id}" title="作業中から外す">一覧へ戻す</button>
-      <div class="now-m">${esc((parOf(k)||{}).title || '')}<span class="pill${u>75?' hot':''}">${label(k)}</span></div></div>`;
-  }).join('') : '<div class="empty"><span><span class="arw">←</span>一覧から子タスクをドラッグ<br>（「now」ボタンでも追加できる）</span></div>';
+  const items = [];
+  kids.filter(k => !k.done && !k.arch).forEach(k => {
+    if (k.now) items.push({id:k.id, k, title:k.title, meta:(parOf(k)||{}).title || ''});
+    (k.steps || []).filter(st => st.now && !st.done).forEach(st =>
+      items.push({id:st.id, k, st, title:st.text, meta:k.title}));
+  });
+  document.getElementById('nowCount').textContent = items.length || '';
+  document.getElementById('nowList').innerHTML = items.length ? items.map(x => {
+    const u = urgency(x.k);
+    return `<div class="now-c${x.st ? ' step' : ''}" data-nid="${x.id}" draggable="true" style="--c:${colorOf(x.k)}">
+      <span class="box" data-nowdone="${x.id}" role="checkbox" aria-checked="false" tabindex="0" title="完了にする"></span>
+      <div class="now-t">${esc(x.title)}</div>
+      <button class="nback" data-nback="${x.id}" title="作業中から外す">一覧へ戻す</button>
+      <div class="now-m">${x.st ? '<span class="nsub">経過</span>' : ''}${esc(x.meta)}${x.st ? '' : `<span class="pill${u>75?' hot':''}">${label(x.k)}</span>`}</div></div>`;
+  }).join('') : '<div class="empty"><span>一覧から子タスクや経過をドラッグ<br>（「now」ボタンでも追加できる）</span></div>';
 }
 
 function toggleDone(k){
@@ -1332,13 +1327,14 @@ function drawTasks(){
       const FOLD_AT = 2;
       const fold = done.length >= FOLD_AT;
       const shown = (expand || !fold) ? done : [];
-      const row = st => `<div class="st${st.done?' done':''}" data-stid="${st.id}">
+      const row = st => `<div class="st${st.done?' done':''}${st.now && !st.done?' isnow':''}" data-stid="${st.id}"${st.done || editStep === st.id ? '' : ' draggable="true"'}>
         <span class="stbox${st.done?' on':''}" data-sttog="${st.id}"></span>
         ${st.waiting && !st.done ? `<span class="wm sm" style="border-color:${p.color}"></span>` : ''}
         ${editStep === st.id
           ? `<input type="text" class="stedit" id="se" value="${esc(st.text)}">`
           : `<span class="stt" data-stedit="${st.id}" title="クリックで編集">${esc(st.text)}</span>`}
         ${st.done ? '' : `<button class="waitbtn${st.waiting?' on':''}" data-stwait="${st.id}">待ち</button>`}
+        ${st.done ? '' : `<button class="nowbtn${st.now?' on':''}" data-stnow="${st.id}">now</button>`}
         ${st.waiting && !st.done ? `<span class="u">${stepLabel(st)}</span>` : ''}
         <button class="tr" data-stdel="${st.id}">${TRASH}</button></div>`;
       h += open.map(row).join('');
@@ -1480,7 +1476,7 @@ function drawTasks(){
   el.querySelectorAll('[data-sttog]').forEach(b => b.addEventListener('click', e => {
     e.stopPropagation();
     const id = b.dataset.sttog;
-    kids.forEach(k => (k.steps||[]).forEach(st => { if (st.id === id) st.done = !st.done; }));
+    kids.forEach(k => (k.steps||[]).forEach(st => { if (st.id === id){ st.done = !st.done; if (st.done) st.now = false; } }));
     render();
   }));
   el.querySelectorAll('[data-stwait]').forEach(b => b.addEventListener('click', e => {
@@ -1492,6 +1488,11 @@ function drawTasks(){
       st.since = st.waiting ? (st.since || today()) : null;
     }));
     render();
+  }));
+  el.querySelectorAll('[data-stnow]').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    const f = nowItem(b.dataset.stnow);
+    if (f) setNow(f.st.id, !f.st.now);
   }));
   el.querySelectorAll('[data-stmore]').forEach(n => n.addEventListener('click', e => {
     e.stopPropagation();
@@ -1547,7 +1548,7 @@ function drawTasks(){
   el.querySelectorAll('[data-now]').forEach(b => b.addEventListener('click', e => {
     e.stopPropagation();
     const k = kids.find(x => x.id === b.dataset.now);
-    setNow(k, !k.now);
+    setNow(k.id, !k.now);
   }));
 
   bindDrag(el);
@@ -1746,7 +1747,17 @@ function bindDrag(el){
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', n.dataset.kid);
       e.stopPropagation();
-      startGhost(e, n);
+      dragMark(n);
+    });
+  });
+  el.querySelectorAll('.st[draggable]').forEach(n => {
+    n.addEventListener('dragstart', e => {
+      if (e.target.closest && e.target.closest('input')) return;
+      drag = {type:'s', id:n.dataset.stid, from:'list'};
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', n.dataset.stid);
+      e.stopPropagation();
+      dragMark(n);
     });
   });
   if (el._dnd) return;
@@ -1755,7 +1766,8 @@ function bindDrag(el){
   // 一覧の中で受け付けるか：作業中から戻す・期限ざっくり別の見出し・手動並べ替え
   const listTarget = e => {
     if (!drag) return null;
-    if (drag.type === 'k' && drag.from === 'now') return {el, back:true};
+    if (drag.from === 'now') return {el, back:true};
+    if (drag.type === 's') return null;
     if (drag.type === 'k' && sortMode === 'bucket'){
       const b = e.target.closest && e.target.closest('[data-bucket]');
       return b ? {el:b, bucket:b.dataset.bucket} : null;
@@ -1777,19 +1789,16 @@ function bindDrag(el){
     const t = listTarget(e);
     if (!t) return;
     e.preventDefault();
-    const d = drag, from = ghostRect();
-    drag = null; clearDropMark(el); endGhost();
-    if (t.back){
-      const k = kids.find(x => x.id === d.id);
-      return setNow(k, false, from);
-    }
+    const d = drag;
+    drag = null; clearDropMark(el); dragUnmark();
+    if (t.back) return setNow(d.id, false);
     if (t.bucket){
       const k = kids.find(x => x.id === d.id);
       if (k && !['later'].includes(t.bucket)){
         if (t.bucket === 'none'){ k.due = null; k.dueK = null; }
         else { k.due = roughEnd(t.bucket); k.dueK = t.bucket === 'today' ? null : t.bucket; }
       }
-      return flip(render, {[d.id]: from});
+      return render();
     }
     if (d.type === 'p' && t.pid){
       if (sortMode !== 'manual'){
@@ -1809,147 +1818,95 @@ function bindDrag(el){
         moveKid(d.id, t.pid, null);
       }
     }
-    reindex(); flip(render, {[d.id]: from});
+    reindex(); render();
   });
-  el.addEventListener('dragend', () => { drag = null; clearDropMark(el); endGhost(); });
+  el.addEventListener('dragend', () => { drag = null; clearDropMark(el); dragUnmark(); });
 }
 
-/* ---- 作業中（now）への出し入れ ---- */
-function setNow(k, on, from){
-  if (!k || k.done) return;
-  k.now = on;
-  flip(render, from ? {[k.id]: from} : {}, on ? k.id : null);
-  if (!on) requestAnimationFrame(() => {
-    const row = document.querySelector(`.ch[data-kid="${k.id}"]`);
-    if (row){ row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash'); row.scrollIntoView({block:'nearest', behavior:'smooth'}); }
-  });
+/* ---- 作業中（now）への出し入れ。子タスク（k…）と孫タスク＝経過（s…）の両方を扱う ---- */
+function nowItem(id){
+  const k = kids.find(x => x.id === id);
+  if (k) return {k, it:k};
+  for (const p of kids) for (const st of (p.steps || [])) if (st.id === id) return {k:p, st, it:st};
+  return null;
 }
-function completeNow(k){
-  const card = document.querySelector(`.now-c[data-nid="${k.id}"]`), box = card && card.querySelector('.box');
-  if (box){
-    box.classList.add('on', 'pop'); card.classList.add('leaving');
-    const r = box.getBoundingClientRect();
-    sparks(r.left + r.width / 2, r.top + r.height / 2, [colorOf(k), '#2F5D8C', '#D19A4A', '#6E9A68', '#C77B7B']);
+function setNow(id, on){
+  const f = nowItem(id);
+  if (!f || f.it.done) return;
+  f.it.now = on;
+  render();
+  if (on){
+    const c = document.querySelector(`.now-c[data-nid="${id}"]`);
+    if (c && !REDUCED()) c.animate([{opacity:0, transform:'translateY(4px)'}, {opacity:1, transform:'none'}], {duration:160, easing:'ease-out'});
+  } else {
+    const row = document.querySelector(`[data-kid="${id}"],[data-stid="${id}"]`);
+    if (row){ row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash'); row.scrollIntoView({block:'nearest'}); }
   }
-  setTimeout(() => { toggleDone(k); flip(render); }, REDUCED() ? 0 : 380);
+}
+function completeNow(id){
+  const f = nowItem(id);
+  if (!f) return;
+  const card = document.querySelector(`.now-c[data-nid="${id}"]`);
+  const finish = () => {
+    if (f.st){ f.st.done = true; f.st.now = false; }
+    else toggleDone(f.k);
+    render();
+  };
+  if (!card || REDUCED()) return finish();
+  card.classList.add('leaving');
+  card.querySelector('.box').classList.add('on');
+  card.animate([{opacity:1}, {opacity:0}], {duration:180, delay:120, easing:'ease-in', fill:'forwards'}).onfinish = finish;
 }
 (function(){
   const zone = document.getElementById('nowList');
+  const accepts = () => drag && (drag.type === 'k' || drag.type === 's') && drag.from === 'list';
   zone.addEventListener('click', e => {
     const d = e.target.closest('[data-nowdone]'), b = e.target.closest('[data-nback]');
-    if (d) completeNow(kids.find(x => x.id === d.dataset.nowdone));
-    if (b) setNow(kids.find(x => x.id === b.dataset.nback), false);
+    if (d) completeNow(d.dataset.nowdone);
+    if (b) setNow(b.dataset.nback, false);
   });
   zone.addEventListener('keydown', e => {
     const d = e.target.closest('[data-nowdone]');
-    if (d && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); completeNow(kids.find(x => x.id === d.dataset.nowdone)); }
+    if (d && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); completeNow(d.dataset.nowdone); }
   });
   zone.addEventListener('dragstart', e => {
     const c = e.target.closest('.now-c');
     if (!c) return;
-    drag = {type:'k', id:c.dataset.nid, from:'now'};
+    drag = {type: c.dataset.nid[0] === 's' ? 's' : 'k', id:c.dataset.nid, from:'now'};
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', c.dataset.nid);
-    startGhost(e, c);
+    dragMark(c);
   });
   zone.addEventListener('dragover', e => {
-    if (!drag || drag.type !== 'k' || drag.from === 'now') return;
+    if (!accepts()) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     zone.classList.add('over');
   });
   zone.addEventListener('dragleave', e => { if (!zone.contains(e.relatedTarget)) zone.classList.remove('over'); });
   zone.addEventListener('drop', e => {
-    if (!drag || drag.type !== 'k' || drag.from === 'now') return;
+    if (!accepts()) return;
     e.preventDefault();
-    const id = drag.id, from = ghostRect();
-    drag = null; zone.classList.remove('over'); endGhost();
-    setNow(kids.find(x => x.id === id), true, from);
+    const id = drag.id;
+    drag = null; dragUnmark();
+    setNow(id, true);
   });
-  zone.addEventListener('dragend', () => { drag = null; endGhost(); });
+  zone.addEventListener('dragend', () => { drag = null; dragUnmark(); });
 })();
 
-/* ---- ドラッグ中の札：カーソルに少し遅れてついてきて、動きに合わせて傾く ---- */
+/* ---- ドラッグ中の目印（札はブラウザ標準のものをそのまま使う） ---- */
 const REDUCED = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
-const BLANK = new Image(); BLANK.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-let ghost = null;
-function startGhost(e, src){
-  endGhost();
-  if (e.dataTransfer.setDragImage) e.dataTransfer.setDragImage(BLANK, 0, 0);
-  const t = src.querySelector('.ch-t,.now-t');
-  const el = document.createElement('div');
-  el.className = 'kghost';
-  el.textContent = t ? t.textContent : '';
-  document.body.appendChild(el);
-  ghost = {el, src, x:e.clientX, y:e.clientY, tx:e.clientX, ty:e.clientY, tilt:0};
-  document.body.classList.toggle('kdrag', !!(drag && drag.type === 'k' && drag.from === 'list'));
-  requestAnimationFrame(() => src.classList.add('dragging'));
-  const g = ghost;
-  (function tick(){
-    if (ghost !== g) return;
-    const k = REDUCED() ? 1 : .28;
-    const nx = g.x + (g.tx - g.x) * k, ny = g.y + (g.ty - g.y) * k;
-    g.tilt += (Math.max(-12, Math.min(12, (nx - g.x) * .9)) - g.tilt) * .2;
-    g.x = nx; g.y = ny;
-    g.el.style.transform = `translate(${nx + 12}px,${ny + 8}px) rotate(${REDUCED() ? 0 : g.tilt}deg) scale(1.04)`;
-    requestAnimationFrame(tick);
-  })();
+let dragSrc = null;
+function dragMark(src){
+  dragSrc = src;
+  document.body.classList.toggle('kdrag', !!(drag && drag.from === 'list'));
+  requestAnimationFrame(() => { if (dragSrc === src) src.classList.add('dragging'); });
 }
-document.addEventListener('dragover', e => { if (ghost && (e.clientX || e.clientY)){ ghost.tx = e.clientX; ghost.ty = e.clientY; } });
-function ghostRect(){ return ghost ? ghost.el.getBoundingClientRect() : null; }
-function endGhost(){
-  if (!ghost) return;
-  ghost.el.remove(); ghost.src.classList.remove('dragging');
-  ghost = null;
+function dragUnmark(){
+  if (dragSrc) dragSrc.classList.remove('dragging');
+  dragSrc = null;
   document.body.classList.remove('kdrag');
   document.querySelectorAll('.nowzone.over').forEach(x => x.classList.remove('over'));
-}
-
-/* ---- FLIP：移った札が前の位置から飛んでくる ---- */
-function flip(update, from = {}, land = null){
-  const before = {};
-  document.querySelectorAll('.ch[data-kid]').forEach(n => before[n.dataset.kid] = n.getBoundingClientRect());
-  document.querySelectorAll('.now-c[data-nid]').forEach(n => before['n' + n.dataset.nid] = n.getBoundingClientRect());
-  Object.entries(from).forEach(([id, r]) => { if (r){ before[id] = r; before['n' + id] = r; } });
-  const cnts = ['nowCount','waitCount'].map(id => document.getElementById(id).textContent);
-  update();
-  ['nowCount','waitCount'].forEach((id, i) => {
-    const c = document.getElementById(id);
-    if (c.textContent !== cnts[i]){ c.classList.remove('bump'); void c.offsetWidth; c.classList.add('bump'); }
-  });
-  if (REDUCED()) return;
-  const fly = (el, a) => {
-    const b = el.getBoundingClientRect();
-    if (!a || !b.width) return;
-    const dx = a.left - b.left, dy = a.top - b.top;
-    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
-    const far = Math.hypot(dx, dy) > 160;
-    el.style.position = 'relative'; el.style.zIndex = 20;
-    el.animate(far ? [
-      {transform:`translate(${dx}px,${dy}px) scale(${Math.min(2, a.width / b.width)},${Math.min(2, a.height / b.height)})`, transformOrigin:'0 0'},
-      {transform:`translate(${dx * .35}px,${dy * .35 - 24}px) scale(1.04) rotate(${dx > 0 ? 2 : -2}deg)`, transformOrigin:'0 0', offset:.55},
-      {transform:'none', transformOrigin:'0 0'}
-    ] : [{transform:`translate(${dx}px,${dy}px)`}, {transform:'none'}],
-    {duration: far ? 620 : 300, easing:'cubic-bezier(.2,.8,.2,1)'}).onfinish = () => { el.style.position = ''; el.style.zIndex = ''; };
-  };
-  document.querySelectorAll('.now-c[data-nid]').forEach(n => {
-    const id = n.dataset.nid;
-    if (before['n' + id] && !from[id]) fly(n, before['n' + id]);
-    else { fly(n, before[id]); if (land === id) setTimeout(() => n.classList.add('land'), 560); }
-  });
-  document.querySelectorAll('.ch[data-kid]').forEach(n => { if (from[n.dataset.kid]) fly(n, from[n.dataset.kid]); else fly(n, before[n.dataset.kid]); });
-}
-function sparks(x, y, colors){
-  if (REDUCED()) return;
-  for (let i = 0; i < 18; i++){
-    const p = document.createElement('i'); p.className = 'spark';
-    p.style.left = x + 'px'; p.style.top = y + 'px'; p.style.background = colors[i % colors.length];
-    document.body.appendChild(p);
-    const a = Math.PI * 2 * i / 18 + Math.random() * .4, r = 30 + Math.random() * 34;
-    p.animate([{transform:'translate(-50%,-50%) scale(1)', opacity:1},
-      {transform:`translate(calc(-50% + ${Math.cos(a) * r}px), calc(-50% + ${Math.sin(a) * r + 18}px)) rotate(${Math.random() * 360}deg) scale(.4)`, opacity:0}],
-      {duration:560 + Math.random() * 200, easing:'cubic-bezier(.15,.7,.3,1)'}).onfinish = () => p.remove();
-  }
 }
 
 function dropTarget(e){
