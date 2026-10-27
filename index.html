@@ -544,8 +544,8 @@ body.kdrag .nowzone .empty{border-color:var(--accent);color:var(--accent)}
 .now-c:hover{box-shadow:0 2px 8px var(--shadow)}
 .now-c.step{border-left-style:dashed}
 .now-c .box{width:15px;height:15px;flex:none}
-.now-c .now-t{flex:1 1 auto;min-width:0;font-size:13.5px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.now-c .now-m{flex:0 4 auto;min-width:0;max-width:50%;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.now-c .now-t{flex:1 1 0;min-width:0;font-size:13.5px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.now-c .now-m{flex:0 0 auto;min-width:0;max-width:45%;display:flex;align-items:center;gap:6px;white-space:nowrap}
 .now-c .now-m .nmeta{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .now-c .now-m .pill,.now-c .nsub{flex:none}
 .now-c .nsub{font-size:10px;border:1px solid var(--line-2);border-radius:99px;padding:0 6px}
@@ -1226,7 +1226,7 @@ function drawSomeday(){
 function drawNow(){
   const items = [];
   kids.filter(k => !k.done && !k.arch).forEach(k => {
-    if (k.now) items.push({id:k.id, k, title:k.title, meta:(parOf(k)||{}).title || ''});
+    if (k.now) items.push({id:k.id, k, title:k.title, meta:(k.group && groupFind(k.group) || {g:{}}).g.title || ''});   // 親は左の色でわかるので施策名を出す
     (k.steps || []).filter(st => st.now && !st.done).forEach(st =>
       items.push({id:st.id, k, st, title:st.text, meta:k.title}));
   });
