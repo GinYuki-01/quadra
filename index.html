@@ -354,6 +354,8 @@ svg.mx{display:block;width:100%;height:100%;margin:0 auto;min-width:0;min-height
 .st .u{font-size:10px;color:var(--ink-3);font-variant-numeric:tabular-nums;flex:none}
 .stepn{font-size:10px;color:var(--ink-3);border:1px solid var(--line-2);border-radius:99px;
   padding:0 5px;flex:none;font-variant-numeric:tabular-nums}
+/* 0 以外の件数は色付きで目立たせる */
+.pcount.on,.stepn{color:var(--accent);border-color:var(--accent);background:var(--accent-soft);font-weight:600}
 .editbtn{font-size:10.5px;color:var(--ink-3);flex:none;opacity:0}
 .ch:hover .editbtn{opacity:1}
 .editbtn:hover{color:var(--ink)}
@@ -1310,6 +1312,8 @@ function bucketHTML(kidHTML){
 }
 
 /* ---- 施策：親タスクの中の見出し。締切は持たず、子タスクを束ねる ---- */
+// 件数バッジ。0 以外は色付きで目立たせる
+const cnt = n => `<span class="pcount${n ? ' on' : ''}">${n}</span>`;
 function groupFind(id){
   for (const p of parents){ const g = (p.groups || []).find(x => x.id === id); if (g) return {p, g}; }
   return null;
@@ -1498,7 +1502,7 @@ function drawTasks(){
           : `<span class="pcv" data-foldp="${p.id}" title="開閉（Alt+クリックで中の施策もまとめて）">${collapsed.has(p.id) ? '▸' : '▾'}</span>`}
         <span class="par-t" data-p="${p.id}" title="クリックで子タスクを追加">${esc(p.title)}</span>
         <button class="editbtn" data-ep="${p.id}">編集</button>
-        ${collapsed.has(p.id) ? `<span class="pcount">${kidsOf(p.id).filter(k=>!k.done).length}</span>` : ''}
+        ${collapsed.has(p.id) ? cnt(kidsOf(p.id).filter(k=>!k.done).length) : ''}
         <span class="add gopen" data-gnew="${p.id}">${addingGroup === p.id ? '閉じる' : '＋ 施策'}</span>
         <span class="add" data-p="${p.id}">${openAdd === p.id && !addGroup ? '閉じる' : '＋ 子タスク'}</span>
         <button class="tr" data-del="${p.id}" title="親タスクごと削除">${TRASH}</button>
@@ -1545,7 +1549,7 @@ function drawTasks(){
           <div class="grp-h">
             <span class="pcv" data-foldg="${g.id}" title="開閉">${shut ? '▸' : '▾'}</span>
             <span class="grp-t" data-eg="${g.id}" title="クリックで名前を変更">${esc(g.title)}</span>
-            <span class="pcount">${gk.filter(k => !k.done).length}</span>
+            ${cnt(gk.filter(k => !k.done).length)}
             <span class="add" data-gadd="${g.id}" data-gp="${p.id}">${openAdd === p.id && addGroup === g.id ? '閉じる' : '＋ 子タスク'}</span>
             <button class="tr" data-delg="${g.id}" title="施策を削除（子タスクは親の直下に残る）">${TRASH}</button>
           </div>`;
