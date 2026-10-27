@@ -979,13 +979,14 @@ const kidsOf = pid => kids.filter(k => k.parent === pid && !k.arch);
 const parOf = k => parents.find(p => p.id === k.parent);
 const colorOf = k => parOf(k) ? parOf(k).color : COLORS[7];
 
-function daysLeft(k){ return k.due ? (atDayStart(k.due) - now()) / DAY : null; }
+// 締切日の終わり（翌日の区切り時刻）まで残り何日か。今日締切なら 0〜1 で「本日」
+function daysLeft(k){ return k.due ? (atDayStart(k.due) - now()) / DAY + 1 : null; }
 function elapsed(k){
   const base = k.recv || k.since || null;
   return base ? (now() - atDayStart(base)) / DAY : 0;
 }
 function urgency(k){
-  const R = daysLeft(k);
+  const R = daysLeft(k) === null ? null : daysLeft(k) - 1;   // 緊急度の曲線は締切日の始まり基準のまま
   let u;
   if (R !== null){
     u = R <= 0 ? 100 : 100 * (1 - Math.log(1 + R) / Math.log(1 + setting('horizon')));
@@ -3110,7 +3111,7 @@ window.addEventListener('beforeunload', () => { if (saveTimer){ clearTimeout(sav
     const open = kids.filter(k => !k.done && !k.arch).length;
     const nowN = kids.filter(k => k.now && !k.done).length;
     const wait = waitEntries().length;
-    const soon = kids.filter(k => !k.done && !k.arch && k.due && daysLeft(k) !== null && daysLeft(k) <= 1).length;
+    const soon = kids.filter(k => !k.done && !k.arch && k.due && daysLeft(k) !== null && daysLeft(k) <= 2).length;
     const hy = now().getFullYear();
     const note = hy >= HOLIDAY_CHECKED_UNTIL
       ? `<div class="r warn"><span>祝日データ</span><b>要確認</b></div>` : '';
