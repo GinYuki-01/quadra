@@ -723,7 +723,7 @@ body.themefade,body.themefade *{transition:background-color .35s, color .35s, bo
             <button class="tab on" data-v="open">進行中</button>
             <button class="tab" data-v="archive">アーカイブ</button>
           </div>
-          <button class="x foldall" id="foldAll" title="Altクリックでも一括">すべて閉じる</button>
+          <button class="x foldall" id="foldAll" title="親タスクと施策をまとめて開閉">すべて閉じる</button>
           <select id="sortSel" class="sortsel">
             <option value="urgency">緊急度順</option>
             <option value="due">締切順</option>
@@ -1491,7 +1491,7 @@ function drawTasks(){
       <div class="par-h${p.done ? ' pdone' : ''}" draggable="true" data-dragp="${p.id}">
         ${man
           ? '<span class="grip" title="ドラッグで並べ替え">⠿</span>'
-          : `<span class="pcv" data-foldp="${p.id}" title="開閉">${collapsed.has(p.id) ? '▸' : '▾'}</span>`}
+          : `<span class="pcv" data-foldp="${p.id}" title="開閉（Alt+クリックで中の施策もまとめて）">${collapsed.has(p.id) ? '▸' : '▾'}</span>`}
         <span class="par-t" data-p="${p.id}" title="クリックで子タスクを追加">${esc(p.title)}</span>
         <button class="editbtn" data-ep="${p.id}">編集</button>
         ${collapsed.has(p.id) ? `<span class="pcount">${kidsOf(p.id).filter(k=>!k.done).length}</span>` : ''}
@@ -1586,8 +1586,11 @@ function drawTasks(){
     e.stopPropagation();
     const id = n.dataset.foldp;
     if (e.altKey){
-      const anyOpen = parents.some(p => !collapsed.has(p.id));
-      collapsed = anyOpen ? new Set(parents.map(p => p.id)) : new Set();
+      // Unity の Hierarchy と同じく、Alt なら中の施策もまとめて開閉
+      const shut = !collapsed.has(id);
+      shut ? collapsed.add(id) : collapsed.delete(id);
+      const p = parents.find(x => x.id === id);
+      (p && p.groups || []).forEach(g => shut ? collapsedG.add(g.id) : collapsedG.delete(g.id));
     } else {
       collapsed.has(id) ? collapsed.delete(id) : collapsed.add(id);
     }
@@ -2856,6 +2859,7 @@ document.getElementById('waitToggle').addEventListener('click', () => {
 document.getElementById('foldAll').addEventListener('click', () => {
   const anyOpen = parents.some(p => !collapsed.has(p.id));
   collapsed = anyOpen ? new Set(parents.map(p => p.id)) : new Set();
+  collapsedG = anyOpen ? new Set(parents.flatMap(p => (p.groups || []).map(g => g.id))) : new Set();
   drawTasks();
 });
 document.getElementById('sortSel').addEventListener('change', e => {
