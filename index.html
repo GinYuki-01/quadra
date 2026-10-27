@@ -180,8 +180,15 @@ svg.mx{display:block;width:100%;height:100%;margin:0 auto;min-width:0;min-height
 
 .left,.right{display:flex;flex-direction:column;gap:12px;min-height:0}
 #nowP{flex:1 1 auto;min-height:240px}
-#mxP{display:none;flex:none}
-body.showmx #mxP{display:flex}
+.face{display:flex;flex-direction:column;gap:12px;flex:1 1 auto;min-height:0}
+.face[hidden]{display:none}
+#mxP{flex:1 1 auto}
+.left{perspective:1800px}
+.flipbtn{margin-left:auto;font-size:10.5px;color:var(--ink-3);border:1px solid var(--line-2);border-radius:99px;padding:1px 9px;
+  display:inline-flex;gap:5px;align-items:center;white-space:nowrap}
+.flipbtn:hover{color:var(--ink);border-color:var(--ink-2)}
+#nowP .phnote{margin-left:auto}
+#nowP .flipbtn{margin-left:4px}
 #taskP{flex:1;min-height:120px}
 #waitP{flex:none;min-height:0}
 #waitP .pb{max-height:96px;overflow-y:auto}
@@ -656,10 +663,12 @@ body.themefade,body.themefade *{transition:background-color .35s, color .35s, bo
 <div class="wrap">
   <div class="top" id="top">
 
-    <div class="left">
+    <div class="left" id="leftCol">
+     <div class="face" id="faceNow">
       <div class="panel" id="nowP">
         <div class="ph"><span class="pt">now</span><span class="cnt" id="nowCount"></span>
-          <span class="phnote">一覧からドラッグで着手</span></div>
+          <span class="phnote">一覧からドラッグで着手</span>
+          <button class="flipbtn" data-flip title="マトリクスに切り替え">マトリクス<span aria-hidden="true">⇄</span></button></div>
         <div class="pb nowzone" id="nowList"></div>
       </div>
 
@@ -669,8 +678,11 @@ body.themefade,body.themefade *{transition:background-color .35s, color .35s, bo
           <span class="cnt" id="waitCount"></span></div>
         <div class="pb" id="waitList"></div>
       </div>
+     </div>
+     <div class="face" id="faceMx" hidden>
       <div class="panel" id="mxP">
-        <div class="ph"><span class="pt">matrix</span><span class="cnt" id="mxCount"></span></div>
+        <div class="ph"><span class="pt">matrix</span><span class="cnt" id="mxCount"></span>
+          <button class="flipbtn" data-flip title="now に切り替え">now<span aria-hidden="true">⇄</span></button></div>
         <div class="mxwrap">
           <svg class="mx" id="mx" viewBox="0 0 480 480"></svg>
           <div id="tip"></div>
@@ -684,6 +696,7 @@ body.themefade,body.themefade *{transition:background-color .35s, color .35s, bo
         </div>
         <div class="legend" id="legend"></div>
       </div>
+     </div>
     </div>
 
     <div class="right">
@@ -723,8 +736,6 @@ const SETTINGS_DEF = [
     {key:'theme', type:'select', label:'表示モード', def:'light',
      hint:'画面全体の色',
      options:[['light','ホワイト'],['dark','ブラック'],['auto','端末に合わせる']]},
-    {key:'showMatrix', type:'bool', label:'マトリクスを表示', def:false,
-     hint:'左列の下に重要度×緊急度の図を出す'},
     {key:'startCollapsed', type:'bool', label:'起動時に親タスクを閉じておく',
      hint:'開いた直後は見出しだけを並べる', def:false},
     {key:'archiveAfter', type:'select', label:'完了タスクをしまうまで', def:1,
@@ -2604,7 +2615,7 @@ function fitHeights(){
   const top = document.getElementById('top');
   if (!top) return;
   const wrapEl = document.querySelector('.mxwrap');
-  const mxOn = !!setting('showMatrix');
+  const mxOn = leftFace === 'mx';
   if (window.innerWidth <= 1060){
     top.style.height = '';
     if (wrapEl){
@@ -2613,21 +2624,41 @@ function fitHeights(){
     }
     return;
   }
-  // 上段は画面の高さに合わせ、一覧は欄の中でスクロール。マトリクスを出すときは正方形が収まる高さまで伸ばす
+  // 上段は画面の高さに合わせ、一覧は欄の中でスクロール。マトリクス面では正方形が収まる高さまで伸ばす
   let h = Math.max(560, window.innerHeight - 96);
-  const left = top.querySelector('.left');
-  if (mxOn && wrapEl && left){
+  if (wrapEl) wrapEl.style.height = '';
+  if (mxOn && wrapEl){
     const mxP = document.getElementById('mxP');
-    const side = Math.max(240, left.clientWidth - 20);
-    wrapEl.style.height = side + 'px';
-    const gap = parseFloat(getComputedStyle(left).rowGap) || 0;
-    const others = [...left.children].filter(c => c !== mxP && c.id !== 'nowP')
-      .reduce((sum, c) => sum + c.offsetHeight + gap, 0);
+    const side = Math.max(240, mxP.clientWidth - 20);
     const chrome = [...mxP.children].filter(c => c !== wrapEl).reduce((sum, c) => sum + c.offsetHeight, 0) + 3;
-    h = Math.max(h, 240 + gap + others + side + chrome);
-  } else if (wrapEl) wrapEl.style.height = '';
+    h = Math.max(h, side + chrome);
+  }
   top.style.height = Math.ceil(h) + 'px';
 }
+
+/* ---- 左パネルの裏返し：now ⇄ マトリクス ---- */
+let leftFace = 'now', flipping = false;
+function showFace(face){
+  leftFace = face;
+  document.getElementById('faceNow').hidden = face !== 'now';
+  document.getElementById('faceMx').hidden = face !== 'mx';
+  fitHeights();
+}
+function flipLeft(){
+  if (flipping) return;
+  const next = leftFace === 'now' ? 'mx' : 'now';
+  const col = document.getElementById('leftCol');
+  const done = () => { flipping = false; scheduleSave(); };
+  if (REDUCED() || !col.animate){ showFace(next); return done(); }
+  flipping = true;
+  const ease = {duration:170, fill:'forwards'};
+  col.animate([{transform:'rotateY(0)'}, {transform:'rotateY(90deg)'}], {...ease, easing:'ease-in'}).onfinish = () => {
+    showFace(next);
+    const a = col.animate([{transform:'rotateY(-90deg)'}, {transform:'rotateY(0)'}], {...ease, easing:'ease-out'});
+    a.onfinish = () => { a.cancel(); col.getAnimations().forEach(x => x.cancel()); done(); };
+  };
+}
+document.getElementById('leftCol').addEventListener('click', e => { if (e.target.closest('[data-flip]')) flipLeft(); });
 
 /* ---- 表示モード（ホワイト／ブラック） ---- */
 function applyTheme(){
@@ -2647,7 +2678,6 @@ matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme
 
 function render(){
   applyTheme();
-  document.body.classList.toggle('showmx', !!setting('showMatrix'));
   cycleCheck(); scheduleSave(); drawClock(); drawLegend(); drawMatrix();
   drawSomeday(); drawNow(); drawTasks(); drawWait();
   requestAnimationFrame(fitHeights);
@@ -2728,7 +2758,7 @@ async function idbGet(){
   }catch(e){ return null; }
 }
 
-function snapshot(){ lastSavedAt = Date.now(); return {v:1, savedAt:lastSavedAt, uid, parents, kids, dirs, sortMode, dirSort, dirView, folderFirst, settings, expanded:[...expanded]}; }
+function snapshot(){ lastSavedAt = Date.now(); return {v:1, savedAt:lastSavedAt, uid, parents, kids, dirs, sortMode, dirSort, dirView, folderFirst, settings, leftFace, expanded:[...expanded]}; }
 function restore(d){
   if (!d) return false;
   parents = d.parents || []; kids = d.kids || []; dirs = d.dirs || [];
@@ -2740,6 +2770,7 @@ function restore(d){
   if (typeof d.folderFirst === 'boolean') folderFirst = d.folderFirst;
   settings = Object.assign(defaultSettings(), d.settings || {});
   if (Array.isArray(d.expanded)) expanded = new Set(d.expanded);
+  if (d.leftFace === 'mx' || d.leftFace === 'now') showFace(d.leftFace);
   const ss = document.getElementById('sortSel'); if (ss) ss.value = sortMode;
   const ds = document.getElementById('dirSort'); if (ds) ds.value = dirSort;
   lastSavedAt = d.savedAt || 0;
