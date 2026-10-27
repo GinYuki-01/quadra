@@ -550,6 +550,12 @@ body.kdrag .nowzone .empty{border-color:var(--accent);color:var(--accent)}
 .now-c .now-m{flex:0 0 auto;min-width:0;max-width:45%;display:flex;align-items:center;gap:6px;white-space:nowrap}
 .now-c .now-m .nmeta{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .now-c .now-m .pill,.now-c .nsub{flex:none}
+/* ホバー中だけ折り返して全文を見せる */
+.now-c:hover{flex-wrap:wrap;row-gap:2px}
+.now-c:hover .now-t{white-space:normal;overflow:visible;overflow-wrap:anywhere;padding-right:72px}
+.now-c:hover .now-m{flex:1 0 100%;max-width:none;flex-wrap:wrap;white-space:normal;padding-left:24px}
+.now-c:hover .now-m .nmeta{overflow:visible;overflow-wrap:anywhere}
+.now-c:hover .nback{top:5px;transform:none}
 .now-c .nsub{font-size:10px;border:1px solid var(--line-2);border-radius:99px;padding:0 6px}
 .now-c .pill{margin-left:0}
 .now-c .nback{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:10.5px;color:var(--ink-3);
@@ -2624,7 +2630,7 @@ function drawClock(){
 }
 
 /* ---------- 省略された文字をホバーで送る ---------- */
-const MARQUEE_SEL = '.ch-t,.stt,.wt .t,.now-t,.par-t,.en,.fn,.ppeek,.sdchip,.arow .t,.dtitle';
+const MARQUEE_SEL = '.ch-t,.stt,.wt .t,.par-t,.en,.fn,.ppeek,.sdchip,.arow .t,.dtitle';
 let mqRaf = null, mqEl = null, mqTimer = null;
 
 function mqStop(){
