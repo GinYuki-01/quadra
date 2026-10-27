@@ -1014,7 +1014,7 @@ let dirSort = 'name';
 let folderFirst = true, dirEdit = null, cwd = null;
 let dirView = 'explorer';
 let expanded = new Set();
-let memos = [], memoOpen = new Set(), selMemo = null, memoAdding = null, memoRename = null, memoDrag = null;
+let memos = [], memoOpen = new Set(), memoTrash = false, selMemo = null, memoAdding = null, memoRename = null, memoDrag = null;
 
 const kidsOf = pid => kids.filter(k => k.parent === pid && !k.arch);
 const parOf = k => parents.find(p => p.id === k.parent);
@@ -2675,16 +2675,23 @@ function dirPath(d){
 
 /* ---------- メモ：フォルダで分類できるシンプルなメモ ---------- */
 function memoKids(pid){
-  const arr = memos.filter(m => m.p === pid);
+  const arr = memos.filter(m => m.p === pid && !m.deletedAt);
   const fs = arr.filter(m => m.type === 'folder').sort((a,b) => a.name.localeCompare(b.name, 'ja'));
   const ms = arr.filter(m => m.type === 'memo').sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
   return fs.concat(ms);
 }
 function memoDesc(id){
   const out = [];
-  const walk = pid => memos.filter(m => m.p === pid).forEach(c => { out.push(c); walk(c.id); });
+  const walk = pid => memos.filter(m => m.p === pid && !m.deletedAt).forEach(c => { out.push(c); walk(c.id); });
   walk(id);
   return out;
+}
+// ゴミ箱：Directories と同じく30日で自動で消える。中身ごと入れた分は delVia で親にまとめる
+function memoTrashed(){ return memos.filter(m => m.deletedAt && !m.delVia); }
+function purgeMemoTrash(){
+  const limit = new Date(now().getTime() - 30 * DAY);
+  const gone = memos.filter(m => m.deletedAt && atDayStart(m.deletedAt) < limit).map(m => m.id);
+  if (gone.length) memos = memos.filter(m => !gone.includes(m.id) && !gone.includes(m.delVia));
 }
 function memoPath(pid){
   const names = [];
@@ -2752,17 +2759,34 @@ function drawMemos(){ drawMemoTree(); drawMemoDetail(); }
 
 function drawMemoTree(){
   scheduleSave();
+  purgeMemoTrash();
   const tree = document.getElementById('mtree');
-  const n = memos.filter(m => m.type === 'memo').length;
+  const n = memos.filter(m => m.type === 'memo' && !m.deletedAt).length;
   const roots = memoKids(null);
+  const tn = memoTrashed().length;
   let h = `<div class="ph dph mroot" data-mroot style="border:none;padding:0 0 7px">
     <span class="pt">memos</span><span class="cnt">${n || ''}</span></div>`;
+  if (memoTrash){
+    const tl = memoTrashed();
+    h += `<div class="crumbs"><span class="cr" data-mback>メモ</span><span class="crsep">/</span><span class="cr now">ゴミ箱</span></div>`;
+    h += tl.length ? tl.map(m => `<div class="dn trashrow">
+      <span class="${m.type === 'folder' ? 'fn' : 'en mt'}">${esc(m.type === 'folder' ? m.name : ((m.title||'').trim() || '無題'))}</span>
+      <span class="tleft">あと${trashDays(m)}日</span>
+      <button class="x" data-mrestore="${m.id}">戻す</button>
+      <button class="x" data-mpurge="${m.id}">完全削除</button></div>`).join('')
+      : '<div class="hint">ゴミ箱は空</div>';
+    h += `<div class="dbar"><button class="btn sm" data-mback>メモへ戻る</button></div>`;
+    tree.innerHTML = h;
+    bindMemos(tree);
+    return;
+  }
   if (memoAdding && memoAdding.parent === null) h += memoForm(0);
   h += roots.map(m => memoRow(m, 0)).join('');
   if (!roots.length && !memoAdding) h += '<div class="hint">フォルダかメモを追加</div>';
   h += `<div class="dbar">
     <button class="btn sm" id="mNewF">＋ フォルダ</button>
-    <button class="btn sm" id="mNewM">＋ メモ</button></div>`;
+    <button class="btn sm" id="mNewM">＋ メモ</button>
+    <button class="btn sm tbtn" id="mTrash">ゴミ箱 ${tn || ''}</button></div>`;
   tree.innerHTML = h;
   bindMemos(tree);
 }
@@ -2789,6 +2813,25 @@ function bindMemos(tree){
     memoAdding = {parent:b.dataset.maf}; drawMemoTree();
     document.getElementById('mfn').focus();
   }));
+  tree.querySelectorAll('[data-mback]').forEach(b => b.addEventListener('click', () => { memoTrash = false; drawMemos(); }));
+  tree.querySelectorAll('[data-mrestore]').forEach(b => b.addEventListener('click', () => {
+    const id = b.dataset.mrestore, m = memos.find(x => x.id === id);
+    // 入っていたフォルダが消えていたらルートへ戻す
+    const home = memos.find(x => x.id === m.p);
+    if (m.p && (!home || home.deletedAt)) m.p = null;
+    memos.forEach(x => { if (x.id === id || x.delVia === id){ x.deletedAt = null; x.delVia = null; } });
+    drawMemos();
+  }));
+  tree.querySelectorAll('[data-mpurge]').forEach(b => b.addEventListener('click', () => {
+    if (!confirm('完全に削除する。元に戻せない')) return;
+    const id = b.dataset.mpurge;
+    memos = memos.filter(x => x.id !== id && x.delVia !== id);
+    drawMemos();
+  }));
+  if (memoTrash) return;
+  document.getElementById('mTrash').addEventListener('click', () => {
+    pruneMemos(null); memoTrash = true; memoAdding = null; memoRename = null; drawMemos();
+  });
   document.getElementById('mNewM').addEventListener('click', () => newMemo(null));
   document.getElementById('mNewF').addEventListener('click', () => {
     memoAdding = {parent:null}; drawMemoTree();
@@ -2835,18 +2878,20 @@ function bindMemos(tree){
     e.stopPropagation();
     const id = b.dataset.mdel, m = memos.find(x => x.id === id);
     if (!m) return;
-    if (m.type === 'folder'){
-      const sub = memoDesc(id);
-      if (!confirm(`「${m.name}」を${sub.length ? `中身${sub.length}件ごと` : ''}削除する\n元に戻せない`)) return;
-      const gone = new Set([id, ...sub.map(x => x.id)]);
-      memos = memos.filter(x => !gone.has(x.id));
-      if (gone.has(selMemo)) selMemo = null;
-    } else {
-      const t = (m.title||'').trim();
-      if ((t || (m.body||'').trim()) && !confirm(`「${t || '無題'}」を削除する\n元に戻せない`)) return;
+    const t = (m.title||'').trim();
+    // 空のメモはゴミ箱を通さずに消す
+    if (m.type === 'memo' && !t && !(m.body||'').trim()){
       memos = memos.filter(x => x.id !== id);
-      if (selMemo === id) selMemo = null;
+    } else {
+      const sub = m.type === 'folder' ? memoDesc(id) : [];
+      const name = m.type === 'folder' ? m.name : (t || '無題');
+      if (!confirm(`「${name}」を${sub.length ? `中身${sub.length}件ごと` : ''}ゴミ箱に入れる\n30日後に自動で消える`)) return;
+      const stamp = today();
+      m.deletedAt = stamp; m.delVia = null;
+      sub.forEach(x => { x.deletedAt = stamp; x.delVia = id; });
     }
+    if (selMemo === id || memoDesc(id).some(x => x.id === selMemo) ||
+        (memos.find(x => x.id === selMemo) || {}).deletedAt) selMemo = null;
     drawMemos();
   }));
 
@@ -2884,9 +2929,9 @@ function bindMemos(tree){
 
 function drawMemoDetail(){
   const box = document.getElementById('mdet');
-  const m = memos.find(x => x.id === selMemo && x.type === 'memo');
-  if (!m){ box.innerHTML = '<div class="empty">メモを選ぶか「＋ メモ」で書き始める</div>'; return; }
-  const folders = memos.filter(x => x.type === 'folder');
+  const m = memos.find(x => x.id === selMemo && x.type === 'memo' && !x.deletedAt);
+  if (!m || memoTrash){ box.innerHTML = '<div class="empty">メモを選ぶか「＋ メモ」で書き始める</div>'; return; }
+  const folders = memos.filter(x => x.type === 'folder' && !x.deletedAt);
   box.innerHTML = `
     <div class="crumb">${esc(memoPath(m.p))}</div>
     <input type="text" id="mTitle" class="mtitle" placeholder="タイトル" value="${esc(m.title||'')}" autocomplete="off">
