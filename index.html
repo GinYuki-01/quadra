@@ -580,6 +580,22 @@ body.themefade,body.themefade *{transition:background-color .35s, color .35s, bo
 @media(prefers-reduced-motion:reduce){
   .now-c,.ch,.st{animation:none !important;transition:none !important}
 }
+
+/* ---- 施策（親タスクの中の見出し） ---- */
+.par-h .gopen{margin-left:auto}
+.par-h .gopen + .add{margin-left:10px}
+.grp{margin:3px 0 4px 11px;border-left:2px solid var(--line-2);padding-left:6px}
+.grp-h{display:flex;align-items:center;gap:7px;padding:2px 0}
+.grp-t{font-size:12.5px;font-weight:500;cursor:pointer;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.grp-t:hover{text-decoration:underline;text-decoration-color:var(--line-2);text-underline-offset:3px}
+.grp-h .add{margin-left:auto;font-size:11px;color:var(--ink-3);cursor:pointer}
+.grp-h:hover .add{color:var(--ink)}
+.grp-h .tr{opacity:0}
+.grp-h:hover .tr{opacity:1}
+.grp .ch{padding-left:4px}
+.grp .st{padding-left:27px}
+.grp-e{font-size:11px;color:var(--ink-3);padding:1px 0 3px 18px}
+.grp-h.drop,.par-h.drop{box-shadow:inset 0 0 0 1.5px var(--accent);border-radius:3px}
 </style>
 </head>
 <body>
@@ -951,6 +967,7 @@ let openStep = null;
 let collapsed = new Set();
 let editStep = null;
 let stepsOpen = new Set();
+let addGroup = null, addingGroup = null, editG = null, collapsedG = new Set();
 let waitExpand = false;
 let adding = null;
 let dirSort = 'name';
@@ -1288,6 +1305,80 @@ function bucketHTML(kidHTML){
   return h;
 }
 
+/* ---- 施策：親タスクの中の見出し。締切は持たず、子タスクを束ねる ---- */
+function groupFind(id){
+  for (const p of parents){ const g = (p.groups || []).find(x => x.id === id); if (g) return {p, g}; }
+  return null;
+}
+function bindGroups(el){
+  el.querySelectorAll('[data-gnew]').forEach(n => n.addEventListener('click', e => {
+    e.stopPropagation();
+    const id = n.dataset.gnew;
+    addingGroup = addingGroup === id ? null : id;
+    if (addingGroup) collapsed.delete(id);
+    drawTasks();
+    const i = document.getElementById('gi'); if (i) i.focus();
+  }));
+  el.querySelectorAll('[data-foldg]').forEach(n => n.addEventListener('click', e => {
+    e.stopPropagation();
+    const id = n.dataset.foldg;
+    collapsedG.has(id) ? collapsedG.delete(id) : collapsedG.add(id);
+    drawTasks();
+  }));
+  el.querySelectorAll('[data-gadd]').forEach(n => n.addEventListener('click', e => {
+    e.stopPropagation();
+    const same = openAdd === n.dataset.gp && addGroup === n.dataset.gadd;
+    openAdd = same ? null : n.dataset.gp; addGroup = same ? null : n.dataset.gadd;
+    collapsedG.delete(n.dataset.gadd); editK = null; openStep = null;
+    drawTasks();
+    const i = document.getElementById('ni'); if (i) i.focus();
+  }));
+  el.querySelectorAll('[data-eg]').forEach(n => n.addEventListener('click', e => {
+    e.stopPropagation();
+    editG = editG === n.dataset.eg ? null : n.dataset.eg; drawTasks();
+    const i = document.getElementById('eg'); if (i){ i.focus(); i.select(); }
+  }));
+  el.querySelectorAll('[data-delg]').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    const f = groupFind(b.dataset.delg); if (!f) return;
+    f.p.groups = f.p.groups.filter(g => g !== f.g);
+    kids.forEach(k => { if (k.group === f.g.id) k.group = null; });
+    render();
+  }));
+  const gadd = document.getElementById('gadd');
+  if (gadd){
+    const go = () => {
+      const i = document.getElementById('gi'), t = i.value.trim();
+      if (!t) return i.focus();
+      const p = parents.find(x => x.id === gadd.dataset.gp);
+      p.groups = p.groups || [];
+      p.groups.push({id:'g' + (uid++), title:t});
+      addingGroup = null; render();
+    };
+    gadd.addEventListener('click', go);
+    document.getElementById('gi').addEventListener('keydown', e => {
+      if (e.key === 'Enter') go();
+      if (e.key === 'Escape'){ e.stopPropagation(); addingGroup = null; drawTasks(); }
+    });
+    document.getElementById('gcancel').addEventListener('click', () => { addingGroup = null; drawTasks(); });
+  }
+  const egsave = document.getElementById('egsave');
+  if (egsave){
+    const go = () => {
+      const i = document.getElementById('eg'), t = i.value.trim();
+      if (!t) return i.focus();
+      const f = groupFind(editG); if (f) f.g.title = t;
+      editG = null; render();
+    };
+    egsave.addEventListener('click', go);
+    document.getElementById('eg').addEventListener('keydown', e => {
+      if (e.key === 'Enter') go();
+      if (e.key === 'Escape'){ e.stopPropagation(); editG = null; drawTasks(); }
+    });
+    document.getElementById('egcancel').addEventListener('click', () => { editG = null; drawTasks(); });
+  }
+}
+
 function drawTasks(){
   const fa = document.getElementById('foldAll');
   if (fa) fa.textContent = parents.length && parents.every(p => collapsed.has(p.id)) ? 'すべて開く' : 'すべて閉じる';
@@ -1323,7 +1414,7 @@ function drawTasks(){
       <span class="box${k.done?' on':''}" data-tog="${k.id}"></span>
       ${isWaiting(k) && !k.done ? `<span class="wm${k.waiting ? '' : ' sub'}" style="border-color:${p.color}"></span>` : ''}
       <span class="ch-t" data-step="${k.id}" title="クリックで経過を追記">${esc(k.title)}</span>
-      ${showPar ? `<span class="ppar">${esc(p.title)}</span>` : ''}
+      ${showPar ? `<span class="ppar">${esc(p.title)}${(p.groups || []).some(g => g.id === k.group) ? ' › ' + esc(p.groups.find(g => g.id === k.group).title) : ''}</span>` : ''}
       ${(k.steps||[]).filter(x=>!x.done).length ? `<span class="stepn">${(k.steps||[]).filter(x=>!x.done).length}</span>` : ''}
       <button class="editbtn" data-ek="${k.id}">編集</button>
       ${k.someday && !k.done ? '<span class="sdmark">いつか</span>' : ''}
@@ -1381,6 +1472,9 @@ function drawTasks(){
           <option value="yearly"${k.rep && k.rep.freq==='yearly'?' selected':''}>毎年</option>
         </select>
         <span id="ropt"></span>
+        ${(p.groups || []).length ? `<span class="lab">施策</span>
+        <select id="ekg"><option value="">なし</option>${p.groups.map(g =>
+          `<option value="${g.id}"${g.id===k.group?' selected':''}>${esc(g.title)}</option>`).join('')}</select>` : ''}
         <span class="lab">親</span>
         <select id="ekp">${sortedParents().map(x =>
           `<option value="${x.id}"${x.id===k.parent?' selected':''}>${esc(x.title)}</option>`).join('')}</select>
@@ -1401,7 +1495,8 @@ function drawTasks(){
         <span class="par-t" data-p="${p.id}" title="クリックで子タスクを追加">${esc(p.title)}</span>
         <button class="editbtn" data-ep="${p.id}">編集</button>
         ${collapsed.has(p.id) ? `<span class="pcount">${kidsOf(p.id).filter(k=>!k.done).length}</span>` : ''}
-        <span class="add" data-p="${p.id}">${openAdd === p.id ? '閉じる' : '＋ 子タスク'}</span>
+        <span class="add gopen" data-gnew="${p.id}">${addingGroup === p.id ? '閉じる' : '＋ 施策'}</span>
+        <span class="add" data-p="${p.id}">${openAdd === p.id && !addGroup ? '閉じる' : '＋ 子タスク'}</span>
         <button class="tr" data-del="${p.id}" title="親タスクごと削除">${TRASH}</button>
       </div>`;
 
@@ -1413,10 +1508,8 @@ function drawTasks(){
       </div>`;
     }
 
-    if (!collapsed.has(p.id)) sortKids(kidsOf(p.id)).forEach(k => { h += kidHTML(k, p, false); });
-
-    if (openAdd === p.id && !collapsed.has(p.id)){
-      h += `<div class="inline">
+    const addForm = () => {
+    return `<div class="inline">
         <input type="text" id="ni" placeholder="子タスク名" autocomplete="off">
         <span class="lab">連絡日</span><input type="date" id="nr" value="${today()}">
         <span class="lab">締切</span>${dueField('nd', null)}
@@ -1435,6 +1528,38 @@ function drawTasks(){
         <span id="nropt"></span>
         <button class="btn sm pri" id="nadd">追加</button>
       </div>`;
+    };
+    const groups = p.groups || [];
+    const inGroup = k => k.group && groups.some(g => g.id === k.group);
+    if (!collapsed.has(p.id)){
+      sortKids(kidsOf(p.id).filter(k => !inGroup(k))).forEach(k => { h += kidHTML(k, p, false); });
+      if (openAdd === p.id && !addGroup) h += addForm();
+      groups.forEach(g => {
+        const gk = kidsOf(p.id).filter(k => k.group === g.id);
+        const shut = collapsedG.has(g.id);
+        h += `<div class="grp" data-gid="${g.id}">
+          <div class="grp-h">
+            <span class="pcv" data-foldg="${g.id}" title="開閉">${shut ? '▸' : '▾'}</span>
+            <span class="grp-t" data-eg="${g.id}" title="クリックで名前を変更">${esc(g.title)}</span>
+            <span class="pcount">${gk.filter(k => !k.done).length}</span>
+            <span class="add" data-gadd="${g.id}" data-gp="${p.id}">${openAdd === p.id && addGroup === g.id ? '閉じる' : '＋ 子タスク'}</span>
+            <button class="tr" data-delg="${g.id}" title="施策を削除（子タスクは親の直下に残る）">${TRASH}</button>
+          </div>`;
+        if (editG === g.id) h += `<div class="inline editbar">
+            <input type="text" id="eg" value="${esc(g.title)}" autocomplete="off">
+            <button class="btn sm pri" id="egsave">保存</button>
+            <button class="btn sm" id="egcancel">やめる</button></div>`;
+        if (!shut){
+          sortKids(gk).forEach(k => { h += kidHTML(k, p, false); });
+          if (!gk.length && !(openAdd === p.id && addGroup === g.id)) h += '<div class="grp-e">子タスクはまだなし。ここへドラッグでも移せる</div>';
+          if (openAdd === p.id && addGroup === g.id) h += addForm();
+        }
+        h += '</div>';
+      });
+      if (addingGroup === p.id) h += `<div class="inline gnew">
+          <input type="text" id="gi" placeholder="施策名（例：LP改善）" autocomplete="off">
+          <button class="btn sm pri" id="gadd" data-gp="${p.id}">追加</button>
+          <button class="btn sm" id="gcancel">やめる</button></div>`;
     }
     h += '</div>';
   });
@@ -1449,11 +1574,12 @@ function drawTasks(){
 
   el.innerHTML = h;
   requestAnimationFrame(fitHeights);
+  bindGroups(el);
 
   el.querySelectorAll('[data-p]').forEach(n => n.addEventListener('click', e => {
     e.stopPropagation();
     const id = n.dataset.p;
-    openAdd = openAdd === id ? null : id; editP = null; editK = null; openStep = null; drawTasks();
+    openAdd = openAdd === id && !addGroup ? null : id; addGroup = null; editP = null; editK = null; openStep = null; drawTasks();
     const i = document.getElementById('ni'); if (i) i.focus();
   }));
   el.querySelectorAll('[data-foldp]').forEach(n => n.addEventListener('click', e => {
@@ -1626,7 +1752,9 @@ function drawTasks(){
       k.waiting = w;
       k.someday = document.getElementById('eksd').checked;
       const np = document.getElementById('ekp').value;
-      if (np !== k.parent){ k.parent = np; k.order = 9999; }
+      const eg = document.getElementById('ekg');
+      if (eg) k.group = eg.value || null;
+      if (np !== k.parent){ k.parent = np; k.order = 9999; k.group = null; }
       const f = document.getElementById('rf').value;
       if (!f){ k.rep = null; k.nextAt = null; }
       else {
@@ -1705,7 +1833,7 @@ function drawTasks(){
         if (!due) due = nextAt;
       }
       kids.push({id:'k'+(uid++), parent:openAdd, title:t, imp:+document.getElementById('nm').value,
-        due, dueK: due && dEl.dataset.k ? dEl.dataset.k : null,
+        due, dueK: due && dEl.dataset.k ? dEl.dataset.k : null, group: addGroup || null,
         recv: document.getElementById('nr').value || today(),
         someday: document.getElementById('nsd').checked,
         waiting:w, since:w ? today() : null,
@@ -1784,6 +1912,11 @@ function bindDrag(el){
       const b = e.target.closest && e.target.closest('[data-bucket]');
       return b ? {el:b, bucket:b.dataset.bucket} : null;
     }
+    if (drag.type === 'k' && e.target.closest){
+      const g = e.target.closest('.grp-h'), ph = e.target.closest('.par-h');
+      if (g) return {el:g, gid:g.closest('[data-gid]').dataset.gid};
+      if (ph) return {el:ph, ungroup:ph.dataset.dragp};
+    }
     if (drag.type === 'k' && sortMode !== 'manual') return null;
     return dropTarget(e);
   };
@@ -1804,6 +1937,12 @@ function bindDrag(el){
     const d = drag;
     drag = null; clearDropMark(el); dragUnmark();
     if (t.back) return setNow(d.id, false);
+    if (t.gid || t.ungroup){
+      const k = kids.find(x => x.id === d.id), f = t.gid && groupFind(t.gid);
+      if (k && f){ k.parent = f.p.id; k.group = f.g.id; collapsedG.delete(f.g.id); }
+      if (k && t.ungroup){ k.parent = t.ungroup; k.group = null; }
+      reindex(); return render();
+    }
     if (t.bucket){
       const k = kids.find(x => x.id === d.id);
       if (k && !['later'].includes(t.bucket)){
@@ -1825,7 +1964,7 @@ function bindDrag(el){
     if (d.type === 'k'){
       if (t.kid){
         const target = kids.find(x => x.id === t.kid);
-        if (target && target.id !== d.id) moveKid(d.id, target.parent, target.id);
+        if (target && target.id !== d.id){ moveKid(d.id, target.parent, target.id); kids.find(x => x.id === d.id).group = target.group || null; }
       } else if (t.pid){
         moveKid(d.id, t.pid, null);
       }
