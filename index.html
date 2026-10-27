@@ -267,6 +267,30 @@ svg.mx{display:block;width:100%;height:100%;margin:0 auto;min-width:0;min-height
   .dirs{grid-template-columns:1fr}
   .dtree{border-right:none;border-bottom:1px solid var(--line-2);max-height:420px}
 }
+.memos{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);margin-top:12px}
+@media(max-width:900px){
+  .memos{grid-template-columns:1fr}
+  .memos .dtree{border-right:none;border-bottom:1px solid var(--line-2);max-height:360px}
+}
+.memos .dtree{min-height:240px}
+.mrow .mt{flex:1 1 auto;min-width:0;font-size:12.5px;color:var(--ink-2);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mrow .mt.untitled{color:var(--ink-3)}
+.mrow.sel .mt{color:var(--ink);font-weight:500}
+.mrow .md{font-size:10px;color:var(--ink-3);font-variant-numeric:tabular-nums;flex:none}
+.mrow .tr{margin-left:0}
+.mfold .x[data-maf]{margin-left:auto}
+.mren{flex:1;min-width:0;padding:2px 6px;font-size:12.5px}
+input.mtitle{width:100%;font-size:15px;font-weight:500;border:none;border-bottom:1px solid var(--line-3);
+  border-radius:0;padding:4px 0 9px;margin:4px 0 10px;background:transparent;color:var(--ink)}
+input.mtitle:focus{outline:none;border-bottom-color:var(--ink-2)}
+.mbody{width:100%;min-height:220px;resize:vertical;border:1px solid var(--line-2);border-radius:var(--r);
+  padding:8px 10px;font:inherit;font-size:13px;line-height:1.7;color:var(--ink);background:var(--bg)}
+.mbody:focus{outline:none;border-color:var(--ink-2)}
+.mfoot{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;font-size:11px;color:var(--ink-3)}
+.mfoot .sortsel{max-width:55%}
+.mfoot .mupd{margin-left:auto;font-variant-numeric:tabular-nums}
+.mroot.drop-into{border-radius:4px}
 .dtree{padding:9px 11px;border-right:1px solid var(--line-2);max-height:560px;min-height:300px;
   overflow-y:auto;overflow-x:hidden;min-width:0}
 .ddet{padding:9px 13px;overflow:auto}
@@ -752,6 +776,11 @@ body.themefade,body.themefade *{transition:background-color .35s, color .35s, bo
     <div class="dtree" id="dtree"></div>
     <div class="ddet" id="ddet"></div>
   </div>
+
+  <div class="panel memos">
+    <div class="dtree" id="mtree"></div>
+    <div class="ddet" id="mdet"></div>
+  </div>
 </div>
 
 </div>
@@ -985,6 +1014,7 @@ let dirSort = 'name';
 let folderFirst = true, dirEdit = null, cwd = null;
 let dirView = 'explorer';
 let expanded = new Set();
+let memos = [], memoOpen = new Set(), selMemo = null, memoAdding = null, memoRename = null, memoDrag = null;
 
 const kidsOf = pid => kids.filter(k => k.parent === pid && !k.arch);
 const parOf = k => parents.find(p => p.id === k.parent);
@@ -2643,6 +2673,249 @@ function dirPath(d){
 }
 
 
+/* ---------- メモ：フォルダで分類できるシンプルなメモ ---------- */
+function memoKids(pid){
+  const arr = memos.filter(m => m.p === pid);
+  const fs = arr.filter(m => m.type === 'folder').sort((a,b) => a.name.localeCompare(b.name, 'ja'));
+  const ms = arr.filter(m => m.type === 'memo').sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
+  return fs.concat(ms);
+}
+function memoDesc(id){
+  const out = [];
+  const walk = pid => memos.filter(m => m.p === pid).forEach(c => { out.push(c); walk(c.id); });
+  walk(id);
+  return out;
+}
+function memoPath(pid){
+  const names = [];
+  let cur = memos.find(x => x.id === pid);
+  while (cur){ names.unshift(cur.name); cur = memos.find(x => x.id === cur.p); }
+  return names.length ? names.join(' / ') : 'ルート';
+}
+function memoDate(ts, full){
+  if (!ts) return '';
+  const d = new Date(ts);
+  const md = `${d.getMonth()+1}/${d.getDate()}`;
+  return full ? `${md} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}` : md;
+}
+// 何も書かれずに離れたメモは残さない
+function pruneMemos(keep){
+  memos = memos.filter(m => m.type !== 'memo' || m.id === keep || (m.title||'').trim() || (m.body||'').trim());
+}
+function newMemo(parent){
+  pruneMemos(null);
+  const id = 'm' + (uid++), t = Date.now();
+  memos.push({id, p:parent, type:'memo', title:'', body:'', createdAt:t, updatedAt:t});
+  if (parent) memoOpen.add(parent);
+  selMemo = id; memoAdding = null;
+  drawMemos();
+  const i = document.getElementById('mTitle'); if (i) i.focus();
+}
+
+function memoForm(depth){
+  return `<div class="dform" style="margin-left:${6 + depth * 15}px">
+    <input type="text" id="mfn" placeholder="フォルダ名" autocomplete="off">
+    <div style="display:flex;gap:6px">
+      <button class="btn sm pri" id="mfadd">追加</button>
+      <button class="btn sm" id="mfcancel">やめる</button></div></div>`;
+}
+
+function memoRow(m, depth){
+  const pad = `style="padding-left:${8 + depth * 15}px"`;
+  if (m.type === 'memo'){
+    const t = (m.title||'').trim();
+    return `<div class="dn mrow${selMemo === m.id ? ' sel' : ''}" data-mid="${m.id}" data-msel="${m.id}" draggable="true" ${pad}>
+      <span class="ficon file"></span>
+      <span class="mt${t ? '' : ' untitled'}">${t ? esc(t) : '無題'}</span>
+      <span class="md">${memoDate(m.updatedAt)}</span>
+      <button class="tr" data-mdel="${m.id}" title="削除">${TRASH}</button></div>`;
+  }
+  const open = memoOpen.has(m.id);
+  const list = memoKids(m.id);
+  const name = memoRename === m.id
+    ? `<input type="text" class="mren" id="mren" value="${esc(m.name)}" autocomplete="off">`
+    : `<span class="fn">${esc(m.name)}</span><span class="cnum">${list.length || ''}</span>`;
+  let h = `<div class="dn folder mfold" data-mid="${m.id}" data-mfold="${m.id}" draggable="true" ${pad}>
+    <span class="cvt">${open ? '▾' : '▸'}</span><span class="ficon"></span>${name}
+    ${memoRename === m.id ? '' : `<button class="x ax" data-maf="${m.id}" title="フォルダを追加"><span class="axi">▤</span><span class="axl">＋フォルダ</span></button>
+    <button class="x ax" data-mam="${m.id}" title="メモを追加"><span class="axi">＋</span><span class="axl">＋メモ</span></button>
+    <button class="x" data-mren="${m.id}" title="名前を変える">名前</button>
+    <button class="tr" data-mdel="${m.id}" title="削除">${TRASH}</button>`}</div>`;
+  if (open){
+    if (memoAdding && memoAdding.parent === m.id) h += memoForm(depth + 1);
+    h += list.map(c => memoRow(c, depth + 1)).join('');
+  }
+  return h;
+}
+
+function drawMemos(){ drawMemoTree(); drawMemoDetail(); }
+
+function drawMemoTree(){
+  scheduleSave();
+  const tree = document.getElementById('mtree');
+  const n = memos.filter(m => m.type === 'memo').length;
+  const roots = memoKids(null);
+  let h = `<div class="ph dph mroot" data-mroot style="border:none;padding:0 0 7px">
+    <span class="pt">memos</span><span class="cnt">${n || ''}</span></div>`;
+  if (memoAdding && memoAdding.parent === null) h += memoForm(0);
+  h += roots.map(m => memoRow(m, 0)).join('');
+  if (!roots.length && !memoAdding) h += '<div class="hint">フォルダかメモを追加</div>';
+  h += `<div class="dbar">
+    <button class="btn sm" id="mNewF">＋ フォルダ</button>
+    <button class="btn sm" id="mNewM">＋ メモ</button></div>`;
+  tree.innerHTML = h;
+  bindMemos(tree);
+}
+
+function bindMemos(tree){
+  tree.querySelectorAll('[data-msel]').forEach(n => n.addEventListener('click', e => {
+    if (e.target.closest('button')) return;
+    const id = n.dataset.msel;
+    pruneMemos(id);
+    selMemo = id; drawMemos();
+  }));
+  tree.querySelectorAll('[data-mfold]').forEach(n => n.addEventListener('click', e => {
+    if (e.target.closest('button') || e.target.closest('input')) return;
+    const id = n.dataset.mfold;
+    memoOpen.has(id) ? memoOpen.delete(id) : memoOpen.add(id);
+    drawMemoTree();
+  }));
+  tree.querySelectorAll('[data-mam]').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation(); newMemo(b.dataset.mam);
+  }));
+  tree.querySelectorAll('[data-maf]').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    memoOpen.add(b.dataset.maf);
+    memoAdding = {parent:b.dataset.maf}; drawMemoTree();
+    document.getElementById('mfn').focus();
+  }));
+  document.getElementById('mNewM').addEventListener('click', () => newMemo(null));
+  document.getElementById('mNewF').addEventListener('click', () => {
+    memoAdding = {parent:null}; drawMemoTree();
+    document.getElementById('mfn').focus();
+  });
+
+  const fa = document.getElementById('mfadd');
+  if (fa){
+    const go = () => {
+      const v = document.getElementById('mfn').value.trim();
+      if (!v) return;
+      memos.push({id:'m' + (uid++), p:memoAdding.parent, type:'folder', name:v});
+      memoAdding = null; drawMemos();
+    };
+    fa.addEventListener('click', go);
+    document.getElementById('mfcancel').addEventListener('click', () => { memoAdding = null; drawMemoTree(); });
+    document.getElementById('mfn').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.isComposing) go();
+      if (e.key === 'Escape'){ e.stopPropagation(); memoAdding = null; drawMemoTree(); }
+    });
+  }
+
+  tree.querySelectorAll('[data-mren]').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation(); memoRename = b.dataset.mren; drawMemoTree();
+    const i = document.getElementById('mren'); i.focus(); i.select();
+  }));
+  const ri = document.getElementById('mren');
+  if (ri){
+    const f = memos.find(x => x.id === memoRename);
+    const done = ok => {
+      if (memoRename === null) return;
+      const v = ri.value.trim();
+      if (ok && v && f) f.name = v;
+      memoRename = null; drawMemos();
+    };
+    ri.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.isComposing) done(true);
+      if (e.key === 'Escape'){ e.stopPropagation(); done(false); }
+    });
+    ri.addEventListener('blur', () => done(true));
+  }
+
+  tree.querySelectorAll('[data-mdel]').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    const id = b.dataset.mdel, m = memos.find(x => x.id === id);
+    if (!m) return;
+    if (m.type === 'folder'){
+      const sub = memoDesc(id);
+      if (!confirm(`「${m.name}」を${sub.length ? `中身${sub.length}件ごと` : ''}削除する\n元に戻せない`)) return;
+      const gone = new Set([id, ...sub.map(x => x.id)]);
+      memos = memos.filter(x => !gone.has(x.id));
+      if (gone.has(selMemo)) selMemo = null;
+    } else {
+      const t = (m.title||'').trim();
+      if ((t || (m.body||'').trim()) && !confirm(`「${t || '無題'}」を削除する\n元に戻せない`)) return;
+      memos = memos.filter(x => x.id !== id);
+      if (selMemo === id) selMemo = null;
+    }
+    drawMemos();
+  }));
+
+  // ドラッグでフォルダへ移動（ルートは見出しへ落とす）
+  const target = e => e.target.closest('[data-mfold],[data-mroot]');
+  tree.querySelectorAll('[data-mid][draggable]').forEach(n => n.addEventListener('dragstart', e => {
+    memoDrag = n.dataset.mid;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', n.dataset.mid);
+  }));
+  const unmark = () => tree.querySelectorAll('.drop-into').forEach(x => x.classList.remove('drop-into'));
+  if (tree.dataset.bound) return;
+  tree.dataset.bound = '1';
+  tree.addEventListener('dragover', e => {
+    if (!memoDrag) return;
+    e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+    unmark();
+    const t = target(e); if (t) t.classList.add('drop-into');
+  });
+  tree.addEventListener('drop', e => {
+    if (!memoDrag) return;
+    e.preventDefault();
+    const t = target(e), src = memos.find(x => x.id === memoDrag);
+    if (t && src){
+      const dest = t.dataset.mfold || null;
+      if (dest !== src.id && !memoDesc(src.id).some(x => x.id === dest)){
+        src.p = dest;
+        if (dest) memoOpen.add(dest);
+      }
+    }
+    memoDrag = null; drawMemos();
+  });
+  tree.addEventListener('dragend', () => { memoDrag = null; unmark(); });
+}
+
+function drawMemoDetail(){
+  const box = document.getElementById('mdet');
+  const m = memos.find(x => x.id === selMemo && x.type === 'memo');
+  if (!m){ box.innerHTML = '<div class="empty">メモを選ぶか「＋ メモ」で書き始める</div>'; return; }
+  const folders = memos.filter(x => x.type === 'folder');
+  box.innerHTML = `
+    <div class="crumb">${esc(memoPath(m.p))}</div>
+    <input type="text" id="mTitle" class="mtitle" placeholder="タイトル" value="${esc(m.title||'')}" autocomplete="off">
+    <textarea id="mBody" class="mbody" placeholder="本文">${esc(m.body||'')}</textarea>
+    <div class="mfoot">
+      <span>フォルダ</span>
+      <select id="mMove" class="sortsel">
+        <option value=""${m.p===null?' selected':''}>ルート</option>
+        ${folders.map(f => `<option value="${f.id}"${m.p===f.id?' selected':''}>${f.p ? esc(memoPath(f.p)) + ' / ' : ''}${esc(f.name)}</option>`).join('')}
+      </select>
+      <span class="mupd" id="mUpd">更新 ${memoDate(m.updatedAt, true)}</span>
+    </div>`;
+  const touch = () => {
+    m.updatedAt = Date.now();
+    document.getElementById('mUpd').textContent = '更新 ' + memoDate(m.updatedAt, true);
+    drawMemoTree();
+  };
+  document.getElementById('mTitle').addEventListener('input', e => { m.title = e.target.value; touch(); });
+  document.getElementById('mTitle').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.isComposing){ e.preventDefault(); document.getElementById('mBody').focus(); }
+  });
+  document.getElementById('mBody').addEventListener('input', e => { m.body = e.target.value; touch(); });
+  document.getElementById('mMove').addEventListener('change', e => {
+    m.p = e.target.value || null;
+    if (m.p) memoOpen.add(m.p);
+    drawMemos();
+  });
+}
+
 function drawClock(){
   const n = now(), w = ['日','月','火','水','木','金','土'][n.getDay()];
   document.getElementById('clock').textContent = `${n.getMonth()+1}/${n.getDate()}(${w})` + (offset ? `  ${offset>0?'+':''}${offset}日` : '');
@@ -2956,10 +3229,12 @@ async function idbGet(){
   }catch(e){ return null; }
 }
 
-function snapshot(){ lastSavedAt = Date.now(); return {v:1, savedAt:lastSavedAt, uid, parents, kids, dirs, sortMode, dirSort, dirView, folderFirst, settings, leftFace, expanded:[...expanded]}; }
+function snapshot(){ lastSavedAt = Date.now(); return {v:1, savedAt:lastSavedAt, uid, parents, kids, dirs, memos, memoOpen:[...memoOpen], sortMode, dirSort, dirView, folderFirst, settings, leftFace, expanded:[...expanded]}; }
 function restore(d){
   if (!d) return false;
   parents = d.parents || []; kids = d.kids || []; dirs = d.dirs || [];
+  memos = d.memos || [];
+  memoOpen = new Set(Array.isArray(d.memoOpen) ? d.memoOpen : []);
   kids.forEach(k => { if (!k.recv) k.recv = k.since || k.doneAt || today(); });
   uid = d.uid || 1;
   if (d.sortMode) sortMode = d.sortMode;
@@ -3011,7 +3286,7 @@ async function resumeFile(){
     const d = await readFile(fileHandle);
     if (d && d.savedAt >= lastSavedAt){
       restore(d);
-      loading = true; render(); drawDirs(); loading = false;
+      loading = true; render(); drawDirs(); drawMemos(); loading = false;
     }
     setStatus('ok', fileHandle.name);
     return true;
@@ -3038,7 +3313,7 @@ async function linkFile(){
     const txt = await f.text();
     if (txt.trim()){
       if (confirm('選んだファイルにデータがある。読み込んで置き換える\n（キャンセルすると今の内容で上書き）')){
-        restore(JSON.parse(txt)); render(); drawDirs();
+        restore(JSON.parse(txt)); render(); drawDirs(); drawMemos();
       }
     }
     await saveNow();
@@ -3088,7 +3363,7 @@ async function checkExternal(){
     const d = await readFile(fileHandle);
     if (d && d.savedAt > lastSavedAt){
       restore(d);
-      loading = true; render(); drawDirs(); loading = false;
+      loading = true; render(); drawDirs(); drawMemos(); loading = false;
       lastWrite = f.lastModified;
       setStatus('ok', fileHandle.name + ' · 再読込');
     }
@@ -3109,7 +3384,7 @@ function importData(file){
     try{
       const d = JSON.parse(r.result);
       if (!confirm('現在の内容を置き換える')) return;
-      restore(d); render(); drawDirs(); saveNow();
+      restore(d); render(); drawDirs(); drawMemos(); saveNow();
     }catch(e){ alert('読み込めなかった'); }
   };
   r.readAsText(file);
@@ -3127,7 +3402,7 @@ window.addEventListener('beforeunload', () => { if (saveTimer){ clearTimeout(sav
 
 (async () => {
   await initStore();
-  fitHeader(); fitHeights(); drawDirs(); render();
+  fitHeader(); fitHeights(); drawDirs(); drawMemos(); render();
   if (window.applyStartupSettings) window.applyStartupSettings();
   if (window.refreshSummary) window.refreshSummary();
 })();
