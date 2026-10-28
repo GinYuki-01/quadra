@@ -3585,8 +3585,13 @@ window.addEventListener('beforeunload', () => { if (saveTimer){ clearTimeout(sav
 
     say('画面を組み立て中');
     if (window.applyStartupSettings) window.applyStartupSettings();
-    requestAnimationFrame(() => bar.classList.add('run'));
-    await wait(700);
+    // バーが満ちきるのを待つ（色の切り替えはその後）
+    await new Promise(res => {
+      const fill = bar.querySelector('i'), t = setTimeout(res, 1200);
+      fill.addEventListener('transitionend', () => { clearTimeout(t); res(); }, {once:true});
+      requestAnimationFrame(() => bar.classList.add('run'));
+    });
+    await wait(80);
 
     // バーが満ちたら、ログイン画面の色を表示モードの色へ寄せてから中に入る
     const same = document.documentElement.dataset.lt === document.documentElement.dataset.theme;
