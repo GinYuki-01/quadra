@@ -54,6 +54,28 @@
   --shadow:rgba(0,0,0,.4);
   color-scheme:dark;
 }
+:root[data-theme="gray"]{
+  /* Chrome のダークグレー（新規タブ）に寄せた、ブラックより明るい暗色 */
+  --bg:#3c3c3c;
+  --bg-2:#353535;
+  --bg-3:#2c2c2c;
+  --bg-4:#4b4b4b;
+  --line:#d6d6d6;
+  --line-2:#575757;
+  --line-3:#474747;
+  --ink:#f1f1f1;
+  --ink-2:#c2c2c2;
+  --ink-3:#969696;
+  --accent:#8ab4f8;
+  --accent-soft:#3a4555;
+  --link:#8ab4f8;
+  --danger:#e3a3a3;
+  --danger-line:#7a5252;
+  --danger-soft:#4a3434;
+  --veil:rgba(60,60,60,.85);
+  --shadow:rgba(0,0,0,.35);
+  color-scheme:dark;
+}
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;height:100%;max-width:100%;overflow-x:hidden}
 body{
@@ -791,7 +813,7 @@ const SETTINGS_DEF = [
   {group:'表示', items:[
     {key:'theme', type:'select', label:'表示モード', def:'light',
      hint:'画面全体の色',
-     options:[['light','ホワイト'],['dark','ブラック'],['auto','端末に合わせる']]},
+     options:[['light','ホワイト'],['gray','グレー'],['dark','ブラック'],['auto','端末に合わせる']]},
     {key:'startCollapsed', type:'bool', label:'起動時に親タスクを閉じておく',
      hint:'開いた直後は見出しだけを並べる', def:false},
     {key:'archiveAfter', type:'select', label:'完了タスクをしまうまで', def:1,
@@ -3192,7 +3214,7 @@ document.getElementById('leftCol').addEventListener('click', e => { if (e.target
 function applyTheme(){
   const m = setting('theme');
   const dark = m === 'dark' || (m === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
-  const root = document.documentElement, next = dark ? 'dark' : 'light';
+  const root = document.documentElement, next = m === 'gray' ? 'gray' : dark ? 'dark' : 'light';
   if (root.dataset.theme === next) return;
   if (root.dataset.theme && !REDUCED()){
     document.body.classList.add('themefade');
@@ -3200,7 +3222,7 @@ function applyTheme(){
   }
   root.dataset.theme = next;
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', dark ? '#18181b' : '#ffffff');
+  if (meta) meta.setAttribute('content', {gray:'#3c3c3c', dark:'#18181b'}[next] || '#ffffff');
 }
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
 
