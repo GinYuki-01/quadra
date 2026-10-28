@@ -2920,9 +2920,17 @@ function bindMemos(tree){
   tree.querySelectorAll('[data-mfold]').forEach(n => n.addEventListener('click', e => {
     if (e.target.closest('button') || e.target.closest('input')) return;
     const id = n.dataset.mfold;
-    if (memoView === 'explorer'){ mcwd = id || null; memoAdding = null; drawMemoTree(); return; }
+    if (memoView === 'explorer'){
+      // フォルダはダブルクリックか › で入る（Directories と同じ）。「上へ」はシングルクリックのまま
+      if (!n.classList.contains('up') && !e.target.closest('.cv')) return;
+      mcwd = id || null; memoAdding = null; drawMemoTree(); return;
+    }
     memoOpen.has(id) ? memoOpen.delete(id) : memoOpen.add(id);
     drawMemoTree();
+  }));
+  if (memoView === 'explorer') tree.querySelectorAll('.mfold[data-mfold]').forEach(n => n.addEventListener('dblclick', e => {
+    if (e.target.closest('button') || e.target.closest('input')) return;
+    mcwd = n.dataset.mfold; memoAdding = null; drawMemoTree();
   }));
   tree.querySelectorAll('[data-mam]').forEach(b => b.addEventListener('click', e => {
     e.stopPropagation(); newMemo(b.dataset.mam);
