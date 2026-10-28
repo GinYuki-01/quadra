@@ -1047,13 +1047,15 @@ function urgency(k){
 }
 function urgencyBack(k, d){ const s = offset; offset -= d; const v = urgency(k); offset = s; return v; }
 /* ---- ざっくり期限：今週中・来週中・今月中（週は日曜まで） ---- */
-const ROUGH = [['today','今日'],['week','今週中'],['next','来週中'],['month','今月中']];
-const ROUGH_LABEL = {today:'今日', week:'今週中', next:'来週中', month:'今月中'};
+const ROUGH = [['today','今日'],['week','今週中'],['next','来週中'],['month','今月中'],['month1','来月中'],['month2','再来月中']];
+const ROUGH_LABEL = Object.fromEntries(ROUGH);
 function roughEnd(key){
   const d = new Date(today() + 'T12:00:00');
   if (key === 'week')  d.setDate(d.getDate() + (7 - d.getDay()) % 7);
   if (key === 'next')  d.setDate(d.getDate() + (7 - d.getDay()) % 7 + 7);
-  if (key === 'month') d.setMonth(d.getMonth() + 1, 0);
+  if (key === 'month')  d.setMonth(d.getMonth() + 1, 0);
+  if (key === 'month1') d.setMonth(d.getMonth() + 2, 0);
+  if (key === 'month2') d.setMonth(d.getMonth() + 3, 0);
   return iso(d);
 }
 function roughOf(due){
@@ -1323,7 +1325,7 @@ function sortedParents(){
   return arr.sort((a,b)=>(a.order||0)-(b.order||0));
 }
 
-const BUCKETS = [['today','今日まで'],['week','今週中'],['next','来週中'],['month','今月中'],['later','それ以降'],['none','期限なし']];
+const BUCKETS = [['today','今日まで'],['week','今週中'],['next','来週中'],['month','今月中'],['month1','来月中'],['month2','再来月中'],['later','それ以降'],['none','期限なし']];
 function bucketHTML(kidHTML){
   const list = kids.filter(k => !k.arch && parOf(k));
   const fmtD = v => { const d = new Date(v + 'T12:00:00'); return `${d.getMonth()+1}/${d.getDate()}（${WD[d.getDay()]}）`; };
@@ -1332,9 +1334,11 @@ function bucketHTML(kidHTML){
     const items = list.filter(k => !k.done && roughOf(k.due) === key)
       .sort((a,b) => (a.due||'9').localeCompare(b.due||'9') || urgency(b) - urgency(a));
     if (key === 'later' && !items.length) return;
+    // 月末などで前の区分に丸ごと含まれる空の区分は出さない
     if (key === 'month' && !items.length && roughEnd('month') <= roughEnd('next')) return;
+    if (key === 'month1' && !items.length && roughEnd('month1') <= roughEnd('next')) return;
     const sub = key === 'today' ? fmtD(today()) + ' と超過分'
-      : key === 'later' ? fmtD([roughEnd('month'), roughEnd('next')].sort()[1]) + ' より先'
+      : key === 'later' ? fmtD([roughEnd('month2'), roughEnd('next')].sort()[1]) + ' より先'
       : key === 'none' ? '' : '〜' + fmtD(roughEnd(key));
     h += `<div class="par bucket${key==='today'?' hot':''}" data-bucket="${key}">
       <div class="bk-h"><span class="bk-t">${name}</span><span class="bk-s">${sub}</span><span class="bk-n">${items.length || ''}</span></div>
