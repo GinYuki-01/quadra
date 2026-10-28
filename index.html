@@ -11,8 +11,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500&display=swap" rel="stylesheet">
+<script>
+/* ログイン画面の色はデータ読み込み前に決める（ブラウザに保存した値） */
+try { document.documentElement.dataset.lt = localStorage.getItem('quadra.loginTheme') || 'light'; }
+catch (e) { document.documentElement.dataset.lt = 'light'; }
+</script>
 <style>
-:root{
+/* ログイン画面（#login.own）は表示モードと別に data-lt の配色で固定する */
+:root,:root[data-lt="light"] #login.own{
   --bg:#ffffff;
   --bg-2:#f7f7f5;
   --bg-3:#f0f0ee;
@@ -32,8 +38,9 @@
   --veil:rgba(255,255,255,.82);
   --shadow:rgba(0,0,0,.09);
   --r:5px;
+  color-scheme:light;
 }
-:root[data-theme="dark"]{
+:root[data-theme="dark"],:root[data-lt="dark"] #login.own{
   --bg:#18181b;
   --bg-2:#1f1f23;
   --bg-3:#29292e;
@@ -54,7 +61,7 @@
   --shadow:rgba(0,0,0,.4);
   color-scheme:dark;
 }
-:root[data-theme="gray"]{
+:root[data-theme="gray"],:root[data-lt="gray"] #login.own{
   /* Chrome のダークグレー（新規タブ）に寄せた、ブラックより明るい暗色 */
   --bg:#3c3c3c;
   --bg-2:#353535;
@@ -495,8 +502,11 @@ input.mtitle:focus{outline:none;border-bottom-color:var(--ink-2)}
 .empty{font-size:12px;color:var(--ink-3);padding:8px 0}
 .hint{font-size:11.5px;color:var(--ink-3);padding:2px 0 6px}
 
-#login{position:fixed;inset:0;background:var(--bg);z-index:100;display:grid;place-items:center;
+#login{position:fixed;inset:0;background:var(--bg);color:var(--ink);z-index:100;display:grid;place-items:center;
   transition:opacity .5s ease,visibility .5s}
+/* 入るとき・戻るときにログイン画面の色を表示モードへなめらかに寄せる */
+#login.blend,#login.blend *{transition:background-color .45s ease, color .45s ease, border-color .45s ease,
+  stroke .45s ease, fill .45s ease, opacity .5s ease, visibility .5s !important}
 #login.gone{opacity:0;visibility:hidden;pointer-events:none}
 .lg-box{width:268px;text-align:left}
 .lg-mark{margin:0 auto 26px;width:64px;height:64px}
@@ -657,13 +667,13 @@ body.themefade,body.themefade *{transition:background-color .35s, color .35s, bo
 </head>
 <body>
 
-<div id="login">
+<div id="login" class="own">
   <div class="lg-box">
     <svg class="lg-mark" viewBox="0 0 64 64" aria-hidden="true">
-      <line x1="6" y1="58" x2="60" y2="58" stroke="var(--line)" stroke-width="1.2"/>
-      <line x1="6" y1="4" x2="6" y2="58" stroke="var(--line)" stroke-width="1.2"/>
-      <line x1="33" y1="4" x2="33" y2="58" stroke="var(--line-2)" stroke-width="1"/>
-      <line x1="6" y1="31" x2="60" y2="31" stroke="var(--line-2)" stroke-width="1"/>
+      <line x1="6" y1="58" x2="60" y2="58" style="stroke:var(--line)" stroke-width="1.2"/>
+      <line x1="6" y1="4" x2="6" y2="58" style="stroke:var(--line)" stroke-width="1.2"/>
+      <line x1="33" y1="4" x2="33" y2="58" style="stroke:var(--line-2)" stroke-width="1"/>
+      <line x1="6" y1="31" x2="60" y2="31" style="stroke:var(--line-2)" stroke-width="1"/>
       <path id="trace" d="M6 50 L50 8" stroke="#2F5D8C" stroke-width="2" fill="none" stroke-linecap="round"/>
       <circle id="seed" cx="0" cy="0" r="3.4" fill="#2F5D8C"/>
     </svg>
@@ -814,6 +824,9 @@ const SETTINGS_DEF = [
     {key:'theme', type:'select', label:'表示モード', def:'light',
      hint:'画面全体の色',
      options:[['light','ホワイト'],['gray','グレー'],['dark','ブラック'],['auto','端末に合わせる']]},
+    {key:'loginTheme', type:'select', label:'ログイン画面の色', def:'light',
+     hint:'起動時の「はじめる」画面。入るときに表示モードの色へ切り替わる',
+     options:[['light','ホワイト'],['gray','グレー'],['dark','ブラック']]},
     {key:'startCollapsed', type:'bool', label:'起動時に親タスクを閉じておく',
      hint:'開いた直後は見出しだけを並べる', def:false},
     {key:'archiveAfter', type:'select', label:'完了タスクをしまうまで', def:1,
@@ -3100,6 +3113,7 @@ function applySettings(){
   if (setting('startCollapsed') !== before && window.applyStartupSettings){
     window.applyStartupSettings();
   }
+  syncLoginTheme();
   render();
   markDirty();
 }
@@ -3225,6 +3239,12 @@ function applyTheme(){
   if (meta) meta.setAttribute('content', {gray:'#3c3c3c', dark:'#18181b'}[next] || '#ffffff');
 }
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+// ログイン画面の色はファイル読み込み前に使うので、ブラウザにも控えておく
+function syncLoginTheme(){
+  const v = setting('loginTheme');
+  document.documentElement.dataset.lt = v;
+  try { localStorage.setItem('quadra.loginTheme', v); } catch (e) {}
+}
 
 function render(){
   applyTheme();
@@ -3541,8 +3561,15 @@ window.addEventListener('beforeunload', () => { if (saveTimer){ clearTimeout(sav
     requestAnimationFrame(() => bar.classList.add('run'));
     await wait(700);
 
+    // バーが満ちたら、ログイン画面の色を表示モードの色へ寄せてから中に入る
+    const same = document.documentElement.dataset.lt === document.documentElement.dataset.theme;
+    box.classList.add('blend');
+    box.classList.remove('own');
+    if (!same && !REDUCED()) await wait(450);
     document.getElementById('app').classList.add('in');
     box.classList.add('gone');
+    setTimeout(() => box.classList.remove('blend'), 520);
+    syncLoginTheme();
     locked = false;
     btn.disabled = false;
     load.classList.remove('on');
@@ -3560,7 +3587,11 @@ window.addEventListener('beforeunload', () => { if (saveTimer){ clearTimeout(sav
     summary();
     btn.textContent = '再開する';
     document.getElementById('app').classList.remove('in');
+    box.classList.add('blend');
     box.classList.remove('gone');
+    // 表示モードの色で現れてから、ログイン画面の色へ戻す
+    setTimeout(() => box.classList.add('own'), 500);
+    setTimeout(() => box.classList.remove('blend'), 1000);
   }
 
   function resetIdle(){
