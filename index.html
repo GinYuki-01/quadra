@@ -1054,6 +1054,7 @@ let folderFirst = true, dirEdit = null, cwd = null;
 let dirView = 'explorer';
 let expanded = new Set();
 let memos = [], memoOpen = new Set(), memoTrash = false, selMemo = null, memoAdding = null, memoRename = null, memoDrag = null;
+let memoView = 'tree', mcwd = null;   // メモも Directories と同じく「階層移動」と「ツリー」を切り替える
 
 const kidsOf = pid => kids.filter(k => k.parent === pid && !k.arch);
 const parOf = k => parents.find(p => p.id === k.parent);
@@ -2789,6 +2790,7 @@ function newMemo(parent){
   const id = 'm' + (uid++), t = Date.now();
   memos.push({id, p:parent, type:'memo', title:'', body:'', createdAt:t, updatedAt:t});
   if (parent) memoOpen.add(parent);
+  if (memoView === 'explorer') mcwd = parent;
   selMemo = id; memoAdding = null;
   drawMemos();
   const i = document.getElementById('mTitle'); if (i) i.focus();
@@ -2817,13 +2819,14 @@ function memoRow(m, depth){
   const name = memoRename === m.id
     ? `<input type="text" class="mren" id="mren" value="${esc(m.name)}" autocomplete="off">`
     : `<span class="fn">${esc(m.name)}</span><span class="cnum">${list.length || ''}</span>`;
+  const ex = memoView === 'explorer';
   let h = `<div class="dn folder mfold" data-mid="${m.id}" data-mfold="${m.id}" draggable="true" ${pad}>
-    <span class="cvt">${open ? '▾' : '▸'}</span><span class="ficon"></span>${name}
+    ${ex ? '' : `<span class="cvt">${open ? '▾' : '▸'}</span>`}<span class="ficon"></span>${name}
     ${memoRename === m.id ? '' : `<button class="x ax" data-maf="${m.id}" title="フォルダを追加"><span class="axi">▤</span><span class="axl">＋フォルダ</span></button>
     <button class="x ax" data-mam="${m.id}" title="メモを追加"><span class="axi">＋</span><span class="axl">＋メモ</span></button>
     <button class="x" data-mren="${m.id}" title="名前を変える">名前</button>
-    <button class="tr" data-mdel="${m.id}" title="削除">${TRASH}</button>`}</div>`;
-  if (open){
+    <button class="tr" data-mdel="${m.id}" title="削除">${TRASH}</button>`}${ex ? '<span class="cv">›</span>' : ''}</div>`;
+  if (open && !ex){
     if (memoAdding && memoAdding.parent === m.id) h += memoForm(depth + 1);
     h += list.map(c => memoRow(c, depth + 1)).join('');
   }
@@ -2840,7 +2843,11 @@ function drawMemoTree(){
   const roots = memoKids(null);
   const tn = memoTrashed().length;
   let h = `<div class="ph dph mroot" data-mroot style="border:none;padding:0 0 7px">
-    <span class="pt">memos</span><span class="cnt">${n || ''}</span></div>`;
+    <span class="pt">memos</span><span class="cnt">${n || ''}</span>
+    <div class="vtog">
+      <button class="vt${memoView==='explorer'?' on':''}" data-mview="explorer">階層移動</button>
+      <button class="vt${memoView==='tree'?' on':''}" data-mview="tree">ツリー</button>
+    </div></div>`;
   if (memoTrash){
     const tl = memoTrashed();
     h += `<div class="crumbs"><span class="cr" data-mback>メモ</span><span class="crsep">/</span><span class="cr now">ゴミ箱</span></div>`;
@@ -2855,9 +2862,23 @@ function drawMemoTree(){
     bindMemos(tree);
     return;
   }
-  if (memoAdding && memoAdding.parent === null) h += memoForm(0);
-  h += roots.map(m => memoRow(m, 0)).join('');
-  if (!roots.length && !memoAdding) h += '<div class="hint">フォルダかメモを追加</div>';
+  if (memoView === 'explorer'){
+    // 開いているフォルダが消えていたらルートへ
+    if (mcwd && !memos.some(x => x.id === mcwd && !x.deletedAt)) mcwd = null;
+    h += `<div class="crumbs">${memoCrumbs()}</div>`;
+    if (mcwd !== null){
+      const up = (memos.find(x => x.id === mcwd) || {}).p || '';
+      h += `<div class="dn up" data-mfold="${up}"><span class="cv">‹</span><span class="fn">上へ</span></div>`;
+    }
+    const list = memoKids(mcwd);
+    if (memoAdding && memoAdding.parent === mcwd) h += memoForm(0);
+    h += list.map(m => memoRow(m, 0)).join('');
+    if (!list.length && !memoAdding) h += '<div class="hint">フォルダかメモを追加</div>';
+  } else {
+    if (memoAdding && memoAdding.parent === null) h += memoForm(0);
+    h += roots.map(m => memoRow(m, 0)).join('');
+    if (!roots.length && !memoAdding) h += '<div class="hint">フォルダかメモを追加</div>';
+  }
   h += `<div class="dbar">
     <button class="btn sm" id="mNewF">＋ フォルダ</button>
     <button class="btn sm" id="mNewM">＋ メモ</button>
@@ -2866,7 +2887,30 @@ function drawMemoTree(){
   bindMemos(tree);
 }
 
+function memoCrumbs(){
+  const parts = [];
+  let cur = mcwd;
+  while (cur){
+    const f = memos.find(x => x.id === cur);
+    if (!f) break;
+    parts.unshift(f); cur = f.p;
+  }
+  return `<span class="cr${mcwd === null ? ' now' : ''}" data-mcd="">メモ</span>` + parts.map((f, i) =>
+    `<span class="crsep">/</span><span class="cr${i === parts.length - 1 ? ' now' : ''}" data-mcd="${f.id}">${esc(f.name)}</span>`).join('');
+}
+
 function bindMemos(tree){
+  tree.querySelectorAll('[data-mview]').forEach(b => b.addEventListener('click', () => {
+    memoView = b.dataset.mview;
+    if (memoView === 'explorer'){
+      const cur = memos.find(x => x.id === selMemo);
+      mcwd = cur ? cur.p : null;   // 選んでいるメモのフォルダから始める
+    }
+    memoAdding = null; drawMemoTree();
+  }));
+  tree.querySelectorAll('[data-mcd]').forEach(c => c.addEventListener('click', () => {
+    mcwd = c.dataset.mcd || null; memoAdding = null; drawMemoTree();
+  }));
   tree.querySelectorAll('[data-msel]').forEach(n => n.addEventListener('click', e => {
     if (e.target.closest('button')) return;
     const id = n.dataset.msel;
@@ -2876,6 +2920,7 @@ function bindMemos(tree){
   tree.querySelectorAll('[data-mfold]').forEach(n => n.addEventListener('click', e => {
     if (e.target.closest('button') || e.target.closest('input')) return;
     const id = n.dataset.mfold;
+    if (memoView === 'explorer'){ mcwd = id || null; memoAdding = null; drawMemoTree(); return; }
     memoOpen.has(id) ? memoOpen.delete(id) : memoOpen.add(id);
     drawMemoTree();
   }));
@@ -2885,6 +2930,7 @@ function bindMemos(tree){
   tree.querySelectorAll('[data-maf]').forEach(b => b.addEventListener('click', e => {
     e.stopPropagation();
     memoOpen.add(b.dataset.maf);
+    if (memoView === 'explorer') mcwd = b.dataset.maf;
     memoAdding = {parent:b.dataset.maf}; drawMemoTree();
     document.getElementById('mfn').focus();
   }));
@@ -2907,9 +2953,10 @@ function bindMemos(tree){
   document.getElementById('mTrash').addEventListener('click', () => {
     pruneMemos(null); memoTrash = true; memoAdding = null; memoRename = null; drawMemos();
   });
-  document.getElementById('mNewM').addEventListener('click', () => newMemo(null));
+  const here = () => memoView === 'explorer' ? mcwd : null;
+  document.getElementById('mNewM').addEventListener('click', () => newMemo(here()));
   document.getElementById('mNewF').addEventListener('click', () => {
-    memoAdding = {parent:null}; drawMemoTree();
+    memoAdding = {parent:here()}; drawMemoTree();
     document.getElementById('mfn').focus();
   });
 
@@ -3032,6 +3079,7 @@ function drawMemoDetail(){
   document.getElementById('mMove').addEventListener('change', e => {
     m.p = e.target.value || null;
     if (m.p) memoOpen.add(m.p);
+    if (memoView === 'explorer') mcwd = m.p;
     drawMemos();
   });
 }
@@ -3356,12 +3404,14 @@ async function idbGet(){
   }catch(e){ return null; }
 }
 
-function snapshot(){ lastSavedAt = Date.now(); return {v:1, savedAt:lastSavedAt, uid, parents, kids, dirs, memos, memoOpen:[...memoOpen], sortMode, dirSort, dirView, folderFirst, settings, leftFace, expanded:[...expanded]}; }
+function snapshot(){ lastSavedAt = Date.now(); return {v:1, savedAt:lastSavedAt, uid, parents, kids, dirs, memos, memoOpen:[...memoOpen], memoView, mcwd, sortMode, dirSort, dirView, folderFirst, settings, leftFace, expanded:[...expanded]}; }
 function restore(d){
   if (!d) return false;
   parents = d.parents || []; kids = d.kids || []; dirs = d.dirs || [];
   memos = d.memos || [];
   memoOpen = new Set(Array.isArray(d.memoOpen) ? d.memoOpen : []);
+  if (d.memoView) memoView = d.memoView;
+  mcwd = d.mcwd || null;
   kids.forEach(k => { if (!k.recv) k.recv = k.since || k.doneAt || today(); });
   uid = d.uid || 1;
   if (d.sortMode) sortMode = d.sortMode;
