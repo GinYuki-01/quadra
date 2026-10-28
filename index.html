@@ -602,6 +602,10 @@ body.kdrag .nowzone .empty{border-color:var(--accent);color:var(--accent)}
 .now-c:hover{box-shadow:0 2px 8px var(--shadow)}
 .now-c.step{border-left-style:dashed}
 .now-c .box{width:15px;height:15px;flex:none}
+.now-c .wm{width:8px;height:8px;border-radius:50%;border:1.5px solid var(--c);flex:none;margin-left:-3px}
+.now-c.wait .now-t{color:var(--ink-2)}
+.ch.flash{animation:chflash 1.2s ease-out}
+@keyframes chflash{0%,30%{background:var(--accent-soft)}100%{background:var(--bg-3)}}
 .now-c .now-t{flex:1 1 0;min-width:0;font-size:13.5px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .now-c .now-m{flex:0 0 auto;min-width:0;max-width:45%;display:flex;align-items:center;gap:6px;white-space:nowrap}
 .now-c .now-m .nmeta{min-width:0;overflow:hidden;text-overflow:ellipsis}
@@ -1305,15 +1309,36 @@ function drawNow(){
     (k.steps || []).filter(st => st.now && !st.done).forEach(st =>
       items.push({id:st.id, k, st, title:st.text, meta:k.title}));
   });
+  // 相手待ちのものは一番下へ（それ以外の並びは保つ）
+  items.forEach(x => x.wait = x.st ? !!x.st.waiting : isWaiting(x.k));
+  items.sort((a, b) => a.wait - b.wait);
   document.getElementById('nowCount').textContent = items.length || '';
   document.getElementById('nowList').innerHTML = items.length ? items.map(x => {
     const u = urgency(x.k);
-    return `<div class="now-c${x.st ? ' step' : ''}" data-nid="${x.id}" draggable="true" style="--c:${colorOf(x.k)}">
+    return `<div class="now-c${x.st ? ' step' : ''}${x.wait ? ' wait' : ''}" data-nid="${x.id}" data-nk="${x.k.id}" draggable="true" style="--c:${colorOf(x.k)}" title="クリックで一覧の該当タスクへ">
       <span class="box" data-nowdone="${x.id}" role="checkbox" aria-checked="false" tabindex="0" title="完了にする"></span>
-      <div class="now-t">${esc(x.title)}</div>
+      ${x.wait ? '<span class="wm" title="相手待ち"></span>' : ''}<div class="now-t">${esc(x.title)}</div>
       <button class="nback" data-nback="${x.id}" title="作業中から外す">一覧へ戻す</button>
       <div class="now-m">${x.st ? '<span class="nsub">経過</span>' : ''}<span class="nmeta">${esc(x.meta)}</span>${x.st ? '' : `<span class="pill${u>75?' hot':''}">${label(x.k)}</span>`}</div></div>`;
   }).join('') : '<div class="empty"><span>一覧から子タスクや経過をドラッグ<br>（「now」ボタンでも追加できる）</span></div>';
+}
+
+// NOW のカードから、右の一覧の該当タスクを開いて見せる
+function focusTask(id){
+  const k = kids.find(x => x.id === id);
+  if (!k) return;
+  collapsed.delete(k.parent);
+  if (k.group) collapsedG.delete(k.group);
+  if (view !== 'open'){
+    view = 'open';
+    document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x.dataset.v === 'open'));
+  }
+  sel = k.id;
+  render();
+  const row = document.querySelector(`.ch[data-kid="${id}"]`);
+  if (!row) return;
+  row.scrollIntoView({block:'nearest', behavior: REDUCED() ? 'auto' : 'smooth'});
+  row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash');
 }
 
 function toggleDone(k){
@@ -2110,6 +2135,8 @@ function completeNow(id){
     const d = e.target.closest('[data-nowdone]'), b = e.target.closest('[data-nback]');
     if (d) completeNow(d.dataset.nowdone);
     if (b) setNow(b.dataset.nback, false);
+    const c = e.target.closest('.now-c');
+    if (c && !d && !b) focusTask(c.dataset.nk);
   });
   zone.addEventListener('keydown', e => {
     const d = e.target.closest('[data-nowdone]');
