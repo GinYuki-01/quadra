@@ -370,7 +370,7 @@ input.mtitle:focus{outline:none;border-bottom-color:var(--ink-2)}
 .stadd input{flex:1 1 120px;min-width:0}
 .waitbtn{font-size:10px;color:var(--ink-3);border:1px solid var(--line-2);border-radius:99px;
   padding:0 6px;flex:none;opacity:0}
-.st:hover .waitbtn{opacity:1}
+.st:hover .waitbtn,.ch:hover .waitbtn{opacity:1}
 .waitbtn.on{opacity:1;color:var(--ink);border-color:var(--ink)}
 .wm.sm{width:7px;height:7px}
 .ch .wm.sub{border-style:dotted}
@@ -1467,6 +1467,7 @@ function drawTasks(){
       <button class="editbtn" data-ek="${k.id}">編集</button>
       ${k.someday && !k.done ? '<span class="sdmark">いつか</span>' : ''}
       ${k.rep ? `<span class="rep">${repLabel(k.rep)}${k.done && k.nextAt ? ' · ' + k.nextAt.slice(5).replace('-','/') + ' 前に復活' : ''}</span>` : ''}
+      ${k.done ? '' : `<button class="waitbtn${k.waiting?' on':''}" data-kwait="${k.id}">待ち</button>`}
       ${k.done ? '' : `<button class="nowbtn${k.now?' on':''}" data-now="${k.id}">now</button>`}
       <button class="tr" data-delk="${k.id}" title="削除">${TRASH}</button>
       <span class="u">${k.done ? '' : label(k)}</span></div>`;
@@ -1732,6 +1733,14 @@ function drawTasks(){
   el.querySelectorAll('[data-tog]').forEach(b => b.addEventListener('click', e => {
     e.stopPropagation();
     toggleDone(kids.find(x => x.id === b.dataset.tog));
+    render();
+  }));
+  el.querySelectorAll('[data-kwait]').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    const k = kids.find(x => x.id === b.dataset.kwait);
+    if (!k) return;
+    k.waiting = !k.waiting;
+    k.since = k.waiting ? (k.since || today()) : null;
     render();
   }));
   el.querySelectorAll('[data-now]').forEach(b => b.addEventListener('click', e => {
