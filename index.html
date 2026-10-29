@@ -104,6 +104,10 @@ header{
 .brand{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2);flex:none}
 .brand b{font-weight:500;color:var(--ink);letter-spacing:.12em;font-size:14px}
 .mk{width:19px;height:19px;display:block}
+.clk{flex:1 1 0;min-width:0;margin-left:14px;display:flex;align-items:baseline;font-size:12.5px;color:var(--ink-2);letter-spacing:.04em;
+  font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.clk .dt{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.clk .tm{flex:none;color:var(--ink);font-weight:500;margin-left:8px}
 .hdr{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--ink-2);
   flex-wrap:nowrap;min-width:0}
 .hsep{width:1px;height:16px;background:var(--line-2);flex:none;margin:0 3px}
@@ -724,6 +728,7 @@ body.themefade,body.themefade *{transition:background-color .35s, color .35s, bo
 
 <header>
   <div class="brand"><svg class="mk" viewBox="0 0 20 20" aria-hidden="true"><path d="M2 18h16M2 18V2" stroke="var(--line)" stroke-width="1.3" fill="none" stroke-linecap="round"/><path d="M10 18V6M2 10h8" stroke="var(--line-2)" stroke-width="1" fill="none"/><circle cx="14" cy="5" r="2.6" fill="#2F5D8C"/></svg><b>Quadra</b></div>
+  <div class="clk" id="clk" aria-live="off"></div>
   <div class="hdr">
     <span class="save-st" id="saveSt" title="保存状態"><i></i><span id="saveTx">未接続</span></span>
     <span class="hsep"></span>
@@ -3239,6 +3244,18 @@ function closeSettings(){
   hardClose();
 }
 
+// ヘッダーの今日の日付と時刻。分が変わるたびに更新
+function tickClock(){
+  const el = document.getElementById('clk');
+  if (!el) return;
+  const d = new Date(), p = n => String(n).padStart(2, '0');
+  el.innerHTML = `<span class="dt">${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日（${'日月火水木金土'[d.getDay()]}）</span><span class="tm">${p(d.getHours())}:${p(d.getMinutes())}</span>`;
+  clearTimeout(tickClock.t);
+  tickClock.t = setTimeout(tickClock, 60000 - d.getSeconds() * 1000 - d.getMilliseconds() + 50);
+}
+tickClock();
+document.addEventListener('visibilitychange', () => { if (!document.hidden) tickClock(); });
+
 function fitHeader(){
   const hd = document.querySelector('header');
   if (!hd) return;
@@ -3247,7 +3264,7 @@ function fitHeader(){
   const levels = ['', 'lv1', 'lv2', 'lv3', 'lv4'];
   for (const lv of levels){
     hd.className = lv;
-    const avail = hd.clientWidth - 32 - brand.offsetWidth - 14;
+    const avail = hd.clientWidth - 32 - brand.offsetWidth - 14 - 26;   // 26 = 時計の分のすき間（gap＋margin）
     if (bar.scrollWidth <= avail) return;
   }
 }
