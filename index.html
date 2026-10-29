@@ -604,6 +604,12 @@ body.kdrag .nowzone .empty{border-color:var(--accent);color:var(--accent)}
 .now-c .box{width:15px;height:15px;flex:none}
 .now-c .wm{width:8px;height:8px;border-radius:50%;border:1.5px solid var(--c);flex:none;margin-left:-3px}
 .now-c.wait .now-t{color:var(--ink-2)}
+.now-c .nstar{flex:none;width:14px;margin:0 -4px 0 -2px;padding:0;border:0;background:none;font-size:12px;line-height:1;
+  color:var(--ink-3);cursor:pointer;opacity:0;transition:opacity .12s}
+.now-c:hover .nstar,.now-c .nstar:focus-visible{opacity:.6}
+.now-c .nstar:hover{opacity:1}
+.now-c.starred .nstar{opacity:1;color:var(--accent)}
+@media(hover:none){.now-c .nstar{opacity:.6}}
 .ch.flash{animation:chflash 1.2s ease-out}
 @keyframes chflash{0%,30%{background:var(--accent-soft)}100%{background:var(--bg-3)}}
 .now-c .now-t{flex:1 1 0;min-width:0;font-size:13.5px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1310,14 +1316,17 @@ function drawNow(){
     (k.steps || []).filter(st => st.now && !st.done).forEach(st =>
       items.push({id:st.id, k, st, title:st.text, meta:k.title}));
   });
-  // 相手待ちのものは一番下へ（それ以外の並びは保つ）
-  items.forEach(x => x.wait = x.st ? !!x.st.waiting : isWaiting(x.k));
-  items.sort((a, b) => a.wait - b.wait);
+  // ★は一番上（締切順）、相手待ちは★の中でも外でも下へ。それ以外の並びは保つ
+  items.forEach(x => { x.wait = x.st ? !!x.st.waiting : isWaiting(x.k); x.star = !!(x.st || x.k).nowStar; });
+  const dueKey = x => x.k.due || '\uffff';
+  items.sort((a, b) => (b.star - a.star) || (a.wait - b.wait)
+    || (a.star && b.star ? (dueKey(a) < dueKey(b) ? -1 : dueKey(a) > dueKey(b) ? 1 : 0) : 0));
   document.getElementById('nowCount').textContent = items.length || '';
   document.getElementById('nowList').innerHTML = items.length ? items.map(x => {
     const u = urgency(x.k);
-    return `<div class="now-c${x.st ? ' step' : ''}${x.wait ? ' wait' : ''}" data-nid="${x.id}" data-nk="${x.k.id}" draggable="true" style="--c:${colorOf(x.k)}" title="クリックで一覧の該当タスクへ">
+    return `<div class="now-c${x.st ? ' step' : ''}${x.wait ? ' wait' : ''}${x.star ? ' starred' : ''}" data-nid="${x.id}" data-nk="${x.k.id}" draggable="true" style="--c:${colorOf(x.k)}" title="クリックで一覧の該当タスクへ">
       <span class="box" data-nowdone="${x.id}" role="checkbox" aria-checked="false" tabindex="0" title="完了にする"></span>
+      <button class="nstar" data-nstar="${x.id}" aria-pressed="${x.star}" title="${x.star ? '★を外す' : '★を付ける（上に固定）'}">${x.star ? '★' : '☆'}</button>
       ${x.wait ? '<span class="wm" title="相手待ち"></span>' : ''}<div class="now-t">${esc(x.title)}</div>
       <button class="nback" data-nback="${x.id}" title="作業中から外す">一覧へ戻す</button>
       <div class="now-m">${x.st ? '<span class="nsub">経過</span>' : ''}<span class="nmeta">${esc(x.meta)}</span>${x.st ? '' : `<span class="pill${u>75?' hot':''}">${label(x.k)}</span>`}</div></div>`;
@@ -2106,6 +2115,7 @@ function setNow(id, on){
   const f = nowItem(id);
   if (!f || f.it.done) return;
   f.it.now = on;
+  if (!on) delete f.it.nowStar;   // ★は NOW の中だけの印
   render();
   if (on){
     const c = document.querySelector(`.now-c[data-nid="${id}"]`);
@@ -2133,7 +2143,12 @@ function completeNow(id){
   const zone = document.getElementById('nowList');
   const accepts = () => drag && (drag.type === 'k' || drag.type === 's') && drag.from === 'list';
   zone.addEventListener('click', e => {
-    const d = e.target.closest('[data-nowdone]'), b = e.target.closest('[data-nback]');
+    const d = e.target.closest('[data-nowdone]'), b = e.target.closest('[data-nback]'), st = e.target.closest('[data-nstar]');
+    if (st){
+      const f = nowItem(st.dataset.nstar);
+      if (f){ f.it.nowStar ? delete f.it.nowStar : f.it.nowStar = true; render(); }
+      return;
+    }
     if (d) completeNow(d.dataset.nowdone);
     if (b) setNow(b.dataset.nback, false);
     const c = e.target.closest('.now-c');
