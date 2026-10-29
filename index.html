@@ -3300,13 +3300,16 @@ function fitHeights(){
     const chrome = [...mxP.children].filter(c => c !== wrapEl).reduce((sum, c) => sum + c.offsetHeight, 0) + 3;
     h = Math.max(h, side + chrome);
   } else {
-    const items = [...nowList.children].reduce((sum, c) => sum + c.offsetHeight, 0)
-      + Math.max(0, nowList.children.length - 1) * (parseFloat(getComputedStyle(nowList).rowGap) || 0)
-      + parseFloat(getComputedStyle(nowList).paddingTop) + parseFloat(getComputedStyle(nowList).paddingBottom);
-    const nowH = (nowP.offsetHeight - nowList.offsetHeight) + Math.max(items, 150);
+    const lcs = getComputedStyle(nowList), rg = parseFloat(lcs.rowGap) || 0;
+    const pad = parseFloat(lcs.paddingTop) + parseFloat(lcs.paddingBottom);
+    const listH = cs => cs.reduce((sum, c) => sum + c.offsetHeight, 0) + Math.max(0, cs.length - 1) * rg + pad;
+    const chrome = nowP.offsetHeight - nowList.offsetHeight;
+    const nowH = chrome + Math.max(listH([...nowList.children]), 150);
     const others = [...document.getElementById('faceNow').children].filter(c => c !== nowP)
       .reduce((sum, c) => sum + c.offsetHeight + gap, 0);
-    h = Math.max(h, Math.min(nowH + others, cap));
+    // NOW は画面が低くても最低 10 件は見えるようにする（それ以上は欄の中でスクロール）
+    const min10 = chrome + listH([...nowList.children].slice(0, 10)) + others;
+    h = Math.max(h, Math.min(nowH + others, cap), min10);
   }
   const taskH = (taskP.offsetHeight - taskList.clientHeight) + taskList.scrollHeight;
   h = Math.max(h, Math.min(taskH, cap));
